@@ -27,11 +27,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     strategy: "jwt",
   },
   callbacks: {
-    signIn({ profile }) {
+    signIn({ account, profile }) {
+      // NextAuth calls signIn on JWT refreshes without an account/profile.
+      // Only enforce the allowlist on the initial OAuth sign-in (account present).
+      if (!account) return true;
       if (ALLOWED_USERS.length === 0) return true; // no allowlist = open
-      // profile is only present on the initial OAuth sign-in, not on JWT/session refreshes
-      if (!profile) return true; // not an OAuth flow — let NextAuth handle it normally
-      const login = (profile as { login?: string })?.login?.toLowerCase();
+      const login = (profile as { login?: string } | undefined)?.login?.toLowerCase();
       if (!login) {
         console.warn("[loki] signIn: GitHub profile missing login field — denying");
         return "/unauthorized";
