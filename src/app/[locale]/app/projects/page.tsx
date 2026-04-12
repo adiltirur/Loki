@@ -49,8 +49,9 @@ export default function ProjectsPage({
 
   const handleBranchSelect = (branch: string) => {
     if (!pickerRepo) return;
-    // Validate branch name is a safe ref (no path traversal or special chars)
-    if (!/^[a-zA-Z0-9._\-\/]+$/.test(branch)) return;
+    // Block path traversal sequences and null bytes; all other chars are safe
+    // because branch is placed in the query string via URLSearchParams (percent-encoded).
+    if (!branch || branch.includes('..') || branch.includes('\0')) return;
     const installationId = parseInt(String(pickerRepo.installationId), 10);
     if (!Number.isFinite(installationId) || installationId <= 0) return;
     const qs = new URLSearchParams({
