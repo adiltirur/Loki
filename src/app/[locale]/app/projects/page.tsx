@@ -49,11 +49,15 @@ export default function ProjectsPage({
 
   const handleBranchSelect = (branch: string) => {
     if (!pickerRepo) return;
+    // Validate branch name is a safe ref (no path traversal or special chars)
+    if (!/^[a-zA-Z0-9._\-\/]+$/.test(branch)) return;
+    const installationId = parseInt(String(pickerRepo.installationId), 10);
+    if (!Number.isFinite(installationId) || installationId <= 0) return;
     const qs = new URLSearchParams({
       owner: pickerRepo.owner,
       repo: pickerRepo.name,
       branch,
-      installationId: String(pickerRepo.installationId),
+      installationId: String(installationId),
     });
     router.push(`/${locale}/app/translations?${qs}`);
   };

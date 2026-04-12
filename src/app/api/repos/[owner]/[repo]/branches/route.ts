@@ -44,9 +44,16 @@ export async function GET(
   for (const installationId of installationIds) {
     try {
       const octokit = await getInstallationOctokit(installationId);
-      // Verify this installation can access the requested repo (throws 404 otherwise)
-      await octokit.repos.get({ owner, repo });
-      // Use paginate to fetch all branches (not capped at 100)
+      // Verify this installation explicitly has this repo in its accessible set.
+      // listReposAccessibleToInstallation returns only repos the installation
+      // was granted access to — prevents cross-repo enumeration even if the
+      // App is installed on multiple orgs.
+      const { data: accessible } = await octokit.apps.listReposAccessibleToInstallation({ per_page: 100 });
+      if (!accessible.repositories.some((r) => r.owner.login === owner && r.name === repo)) {
+        throw new Error(`Repo ${owner}/${repo} not accessible via installation ${installationId}`);
+      }
+      // per_page: 100 is the page size for each request; octokit.paginate
+      // automatically fetches all pages until GitHub returns no more results.
       const data = await octokit.paginate(octokit.repos.listBranches, {
         owner,
         repo,
