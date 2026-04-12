@@ -15,7 +15,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const installationIds = getInstallations(session.user.id);
+  const installationIds = await getInstallations(session.user.id);
   if (installationIds.length === 0) {
     return NextResponse.json({ repos: [] });
   }

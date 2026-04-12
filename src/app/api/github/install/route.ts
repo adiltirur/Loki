@@ -19,10 +19,10 @@ export async function GET(req: NextRequest) {
   const setupAction = req.nextUrl.searchParams.get("setup_action");
 
   if (installationId && setupAction !== "delete") {
-    addInstallation(session.user.id, Number(installationId));
+    await addInstallation(session.user.id, Number(installationId));
   } else if (installationId && setupAction === "delete") {
     const { removeInstallation } = await import("@/lib/installation-store");
-    removeInstallation(session.user.id, Number(installationId));
+    await removeInstallation(session.user.id, Number(installationId));
   }
 
   return NextResponse.redirect(

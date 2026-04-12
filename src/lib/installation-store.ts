@@ -1,22 +1,23 @@
-/**
- * In-memory installation store: GitHub user ID → installation IDs.
- * Production: replace with database (Postgres, Prisma, etc.)
- */
+import { db } from "@/lib/db";
 
-const store = new Map<string, number[]>();
-
-export function addInstallation(userId: string, installationId: number): void {
-  const existing = store.get(userId) ?? [];
-  if (!existing.includes(installationId)) {
-    store.set(userId, [...existing, installationId]);
-  }
+export async function addInstallation(userId: string, installationId: number): Promise<void> {
+  await db.installation.upsert({
+    where: { userId_installationId: { userId, installationId } },
+    update: {},
+    create: { userId, installationId },
+  });
 }
 
-export function getInstallations(userId: string): number[] {
-  return store.get(userId) ?? [];
+export async function getInstallations(userId: string): Promise<number[]> {
+  const rows = await db.installation.findMany({
+    where: { userId },
+    select: { installationId: true },
+  });
+  return rows.map((r) => r.installationId);
 }
 
-export function removeInstallation(userId: string, installationId: number): void {
-  const existing = store.get(userId) ?? [];
-  store.set(userId, existing.filter((id) => id !== installationId));
+export async function removeInstallation(userId: string, installationId: number): Promise<void> {
+  await db.installation.deleteMany({
+    where: { userId, installationId },
+  });
 }
