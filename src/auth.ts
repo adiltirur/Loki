@@ -53,6 +53,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   pages: {
     signIn: `/${LOKI_DEFAULT_LOCALE}/login`,
-    error: `/${LOKI_DEFAULT_LOCALE}/login`,
+    error: `/unauthorized`,
   },
 });
