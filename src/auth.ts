@@ -29,9 +29,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     signIn({ profile }) {
       if (ALLOWED_USERS.length === 0) return true; // no allowlist = open
-      const login = (profile as { login?: string } | undefined)?.login?.toLowerCase();
-      if (!login) return "/unauthorized"; // malformed OAuth response — deny safely
-      return ALLOWED_USERS.includes(login) ? true : "/unauthorized";
+      // profile is only present on the initial OAuth sign-in, not on JWT/session refreshes
+      if (!profile) return true; // not an OAuth flow — let NextAuth handle it normally
+      const login = (profile as { login?: string })?.login?.toLowerCase();
+      if (!login) {
+        console.warn("[loki] signIn: GitHub profile missing login field — denying");
+        return "/unauthorized";
+      }
+      if (!ALLOWED_USERS.includes(login)) {
+        console.warn(`[loki] signIn: access denied for GitHub user '${login}'`);
+        return "/unauthorized";
+      }
+      return true;
     },
     jwt({ token, account, profile }) {
       if (account?.access_token) {
