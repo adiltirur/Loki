@@ -49,13 +49,16 @@ export default function ProjectsPage({
 
   const handleBranchSelect = (branch: string) => {
     if (!pickerRepo) return;
-    // Validate owner/repo against GitHub's actual naming rules.
-    // Branch is placed in the query string via URLSearchParams which percent-encodes
-    // all special characters — path traversal is impossible there, so only
-    // non-empty is required. installationId must be a positive integer.
-    if (!pickerRepo.owner || !/^[a-zA-Z0-9-]+$/.test(pickerRepo.owner)) return;
+    // Validate owner/repo against GitHub's naming rules.
+    // owner: alphanumerics, hyphens, underscores (permissive to support both
+    //        GitHub usernames and org names, which differ slightly).
+    // repo:  alphanumerics, hyphens, dots, underscores.
+    // branch: URLSearchParams percent-encodes all special chars so path traversal
+    //         is impossible in the query string; only reject null bytes (never valid).
+    // installationId: must be a positive integer.
+    if (!pickerRepo.owner || !/^[a-zA-Z0-9_-]+$/.test(pickerRepo.owner)) return;
     if (!pickerRepo.name || !/^[a-zA-Z0-9_.\-]+$/.test(pickerRepo.name)) return;
-    if (!branch) return;
+    if (!branch || branch.includes('\0')) return;
     const installationId = parseInt(String(pickerRepo.installationId), 10);
     if (!Number.isFinite(installationId) || installationId <= 0) return;
     const qs = new URLSearchParams({
