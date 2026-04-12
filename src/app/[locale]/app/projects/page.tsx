@@ -49,8 +49,13 @@ export default function ProjectsPage({
 
   const handleBranchSelect = (branch: string) => {
     if (!pickerRepo) return;
-    // Block path traversal sequences and null bytes; all other chars are safe
-    // because branch is placed in the query string via URLSearchParams (percent-encoded).
+    // Validate all URL parameters before navigation.
+    // owner/repo: GitHub only allows alphanumerics, hyphens, dots, underscores.
+    // branch: block path traversal and null bytes; all other chars are safe in
+    //         a query string because URLSearchParams percent-encodes them.
+    // installationId: must be a positive integer.
+    if (!pickerRepo.owner || !/^[a-zA-Z0-9_.\-]+$/.test(pickerRepo.owner)) return;
+    if (!pickerRepo.name || !/^[a-zA-Z0-9_.\-]+$/.test(pickerRepo.name)) return;
     if (!branch || branch.includes('..') || branch.includes('\0')) return;
     const installationId = parseInt(String(pickerRepo.installationId), 10);
     if (!Number.isFinite(installationId) || installationId <= 0) return;

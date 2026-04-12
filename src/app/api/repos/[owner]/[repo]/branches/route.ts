@@ -44,17 +44,16 @@ export async function GET(
   for (const installationId of installationIds) {
     try {
       const octokit = await getInstallationOctokit(installationId);
-      // Verify this installation can access the specific repo. repos.get() uses
-      // the installation token which is scoped to only repos granted to this
-      // installation — GitHub returns 404 if owner/repo is not in scope, which
-      // is caught below and causes the loop to try the next installation.
+      // Two-layer authorization:
+      // 1. installationId ownership was verified above via getInstallations(session.user.id)
+      // 2. repos.get() confirms this installation has explicit access to the
+      //    requested owner/repo — GitHub returns 404 if the repo is not in the
+      //    installation's granted scope, causing the catch below to try the next id.
       await octokit.repos.get({ owner, repo });
-      // per_page: 100 is the page size per request; octokit.paginate
-      // automatically fetches all pages until GitHub returns no more results.
+      // octokit.paginate exhausts all pages automatically — no branch count cap.
       const data = await octokit.paginate(octokit.repos.listBranches, {
         owner,
         repo,
-        per_page: 100,
       });
       const branches = data.map((b) => b.name);
       return NextResponse.json({ branches });
