@@ -55,7 +55,11 @@ function DashboardContent({
 }) {
   const t = useTranslations("app.dashboard");
 
-  const totalFiles = scanStats.reduce((sum, s) => sum + s.fileCount, 0);
+  const repoDefaultBranches = new Map(repos.map((r) => [`${r.owner}/${r.name}`, r.defaultBranch]));
+  const defaultBranchStats = scanStats.filter(
+    (s) => repoDefaultBranches.get(`${s.owner}/${s.repo}`) === s.branch
+  );
+  const totalFiles = defaultBranchStats.reduce((sum, s) => sum + s.fileCount, 0);
 
   const stats = [
     { label: t("totalKeys"), value: String(repos.length), sub: repos.length === 1 ? "repository" : "repositories", icon: Globe },
@@ -91,7 +95,7 @@ function DashboardContent({
         ) : (
           <div className="space-y-3">
             {repos.slice(0, 5).map((repo) => {
-              const scan = scanStats.find((s) => s.owner === repo.owner && s.repo === repo.name);
+              const scan = scanStats.find((s) => s.owner === repo.owner && s.repo === repo.name && s.branch === repo.defaultBranch);
               return (
                 <div
                   key={`${repo.owner}/${repo.name}`}

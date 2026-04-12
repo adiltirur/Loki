@@ -20,7 +20,6 @@ model Installation {
 model RepoScan {
   id             String   @id @default(cuid())
   userId         String
-  installationId Int
   owner          String
   repo           String
   branch         String

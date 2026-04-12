@@ -36,7 +36,7 @@ export async function GET(
       await db.repoScan.upsert({
         where: { userId_owner_repo_branch: { userId, owner, repo, branch } },
         update: { fileCount: files.length, filePaths: JSON.stringify(files.map((f) => f.path)), scannedAt: new Date() },
-        create: { userId, installationId, owner, repo, branch, fileCount: files.length, filePaths: JSON.stringify(files.map((f) => f.path)) },
+        create: { userId, owner, repo, branch, fileCount: files.length, filePaths: JSON.stringify(files.map((f) => f.path)) },
       });
       return NextResponse.json({ files, installationId });
     } catch (err) {
