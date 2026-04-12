@@ -2,7 +2,15 @@ import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
 import { LOKI_DEFAULT_LOCALE } from "@/lib/constants";
 
+// Parse allowlist once at module load — not on every sign-in
+const ALLOWED_USERS = (process.env.ALLOWED_GITHUB_USERS ?? "")
+  .split(",")
+  .map((u) => u.trim().toLowerCase())
+  .filter(Boolean);
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // trustHost: required when running behind a reverse proxy (Caddy)
+  // Accepts X-Forwarded-Host header — ensure Caddy is the only entry point
   trustHost: true,
   providers: [
     GitHub({
@@ -20,13 +28,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     signIn({ profile }) {
-      const allowed = (process.env.ALLOWED_GITHUB_USERS ?? "")
-        .split(",")
-        .map((u) => u.trim().toLowerCase())
-        .filter(Boolean);
-      if (allowed.length === 0) return true; // no allowlist = open
-      const login = (profile as { login?: string })?.login?.toLowerCase() ?? "";
-      return allowed.includes(login);
+      if (ALLOWED_USERS.length === 0) return true; // no allowlist = open
+      const login = (profile as { login?: string } | undefined)?.login?.toLowerCase();
+      if (!login) return "/unauthorized"; // malformed OAuth response — deny safely
+      return ALLOWED_USERS.includes(login) ? true : "/unauthorized";
     },
     jwt({ token, account, profile }) {
       if (account?.access_token) {

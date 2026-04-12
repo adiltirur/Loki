@@ -1,7 +1,6 @@
-"use client";
-
 import Link from "next/link";
 import { brand } from "@/config/brand";
+import { LOKI_DEFAULT_LOCALE } from "@/lib/constants";
 
 export default function UnauthorizedPage() {
   return (
@@ -23,7 +22,7 @@ export default function UnauthorizedPage() {
           Contact the admin to request access.
         </p>
         <Link
-          href="/en/login"
+          href={`/${LOKI_DEFAULT_LOCALE}/login`}
           className="text-xs text-[var(--color-primary)] hover:underline"
         >
           ← Back to login
