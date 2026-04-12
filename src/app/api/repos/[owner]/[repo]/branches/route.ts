@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 /**
  * GET /api/repos/[owner]/[repo]/branches?installationId=N
- * Lists branches for a repository.
+ * Lists all branches for a repository (paginated via Octokit).
  */
 export async function GET(
   req: NextRequest,
@@ -21,22 +21,31 @@ export async function GET(
   const { owner, repo } = await params;
   const installationIdParam = req.nextUrl.searchParams.get("installationId");
 
-  let installationIds: number[];
-  if (installationIdParam) {
-    installationIds = [parseInt(installationIdParam, 10)];
-  } else {
-    installationIds = await getInstallations(session.user.id);
+  // Always fetch the user's own installations for access control
+  const userInstallations = await getInstallations(session.user.id);
+
+  if (userInstallations.length === 0) {
+    return NextResponse.json({ error: "No GitHub App installed" }, { status: 403 });
   }
 
-  if (installationIds.length === 0) {
-    return NextResponse.json({ error: "No GitHub App installed" }, { status: 403 });
+  let installationIds: number[];
+  if (installationIdParam) {
+    const parsed = parseInt(installationIdParam, 10);
+    // Verify the requested installation actually belongs to this user
+    if (!userInstallations.includes(parsed)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    installationIds = [parsed];
+  } else {
+    installationIds = userInstallations;
   }
 
   let lastError: unknown;
   for (const installationId of installationIds) {
     try {
       const octokit = await getInstallationOctokit(installationId);
-      const { data } = await octokit.repos.listBranches({
+      // Use paginate to fetch all branches (not capped at 100)
+      const data = await octokit.paginate(octokit.repos.listBranches, {
         owner,
         repo,
         per_page: 100,

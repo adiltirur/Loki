@@ -42,7 +42,7 @@ export function BranchPicker({ repo, open, onOpenChange, onSelect }: BranchPicke
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [open, repo]);
+  }, [open, repo.owner, repo.name, repo.installationId, repo.defaultBranch]);
 
   const filtered = branches.filter((b) =>
     b.toLowerCase().includes(query.toLowerCase())

@@ -49,9 +49,13 @@ export default function ProjectsPage({
 
   const handleBranchSelect = (branch: string) => {
     if (!pickerRepo) return;
-    router.push(
-      `/${locale}/app/translations?owner=${pickerRepo.owner}&repo=${pickerRepo.name}&branch=${branch}&installationId=${pickerRepo.installationId}`
-    );
+    const qs = new URLSearchParams({
+      owner: pickerRepo.owner,
+      repo: pickerRepo.name,
+      branch,
+      installationId: String(pickerRepo.installationId),
+    });
+    router.push(`/${locale}/app/translations?${qs}`);
   };
 
   return (

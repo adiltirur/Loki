@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Check, ChevronDown, ChevronRight, ExternalLink, Link } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, ChevronDown, ChevronRight, ExternalLink, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,8 @@ interface PublishViewProps {
   baseBranch: string;
   installationId: number;
   files: FilePayload[];
+  /** The edits map (locale → key → newValue) used to show only changed entries in the diff */
+  edits: Map<string, Map<string, string>>;
   lockPayload: { path: string; content: string } | null;
   lockData: LokiLockData;
   primaryKeys: string[];
@@ -33,6 +35,7 @@ export function PublishView({
   baseBranch,
   installationId,
   files,
+  edits,
   lockPayload,
   lockData,
   primaryKeys,
@@ -55,18 +58,26 @@ export function PublishView({
   const nonPrimaryLocales = locales;
   const statusCounts = getStatusCounts(lockData, primaryKeys, nonPrimaryLocales);
 
+  /**
+   * Build the set of keys that actually changed in a given file path.
+   * A key is "changed" if it appears in any locale's edits map, or if the
+   * file itself appears in the payload (added/deleted keys).
+   */
+  const getChangedEntriesForFile = (file: FilePayload): typeof file.entries => {
+    // Collect all keys that were edited across any locale that maps to this file
+    const changedKeys = new Set<string>();
+    for (const [, keyMap] of edits) {
+      for (const key of keyMap.keys()) {
+        changedKeys.add(key);
+      }
+    }
+    return file.entries.filter((e) => changedKeys.has(e.key));
+  };
+
   const handlePublish = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Build the files array: translation files + lock file
-      const allFiles: Array<{ path: string; entries: Array<{ key: string; value: string }>; raw: Record<string, unknown>; format: "arb" | "json" }> = files.map((f) => ({
-        path: f.path,
-        entries: f.entries,
-        raw: f.raw,
-        format: f.format,
-      }));
-
       const res = await fetch(`/api/repos/${owner}/${repo}/pr`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,7 +86,12 @@ export function PublishView({
           baseBranch,
           ticketUrl: ticketUrl || undefined,
           prTitle,
-          files: allFiles,
+          files: files.map((f) => ({
+            path: f.path,
+            entries: f.entries,
+            raw: f.raw,
+            format: f.format,
+          })),
           lockFile: lockPayload ?? undefined,
           statusCounts,
         }),
@@ -103,10 +119,12 @@ export function PublishView({
       a.href = url;
       a.download = file.path.split("/").pop() ?? "translations.json";
       a.click();
-      URL.revokeObjectURL(url);
+      // Defer revocation so the browser has time to start the download
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     });
   };
 
+  // Success state — only call onPublished; parent is responsible for navigation
   if (prUrl) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-background)]">
@@ -126,11 +144,7 @@ export function PublishView({
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => { onPublished(); onBack(); }}
-          >
+          <Button variant="ghost" size="sm" onClick={onPublished}>
             Continue editing
           </Button>
         </div>
@@ -164,7 +178,7 @@ export function PublishView({
 
           {files.map((file) => {
             const expanded = expandedFiles.has(file.path);
-            const changedEntries = file.entries;
+            const changedEntries = getChangedEntriesForFile(file);
             return (
               <div
                 key={file.path}
@@ -193,16 +207,22 @@ export function PublishView({
                 </button>
                 {expanded && (
                   <div className="divide-y divide-[color-mix(in_srgb,var(--color-outline-variant)_8%,transparent)]">
-                    {changedEntries.map((entry) => (
-                      <div key={entry.key} className="px-4 py-2.5">
-                        <p className="font-mono text-[10px] text-[var(--color-muted-foreground)] mb-1">
-                          {entry.key}
-                        </p>
-                        <p className="font-mono text-xs text-[var(--color-success)]">
-                          + &quot;{entry.value}&quot;
-                        </p>
-                      </div>
-                    ))}
+                    {changedEntries.length === 0 ? (
+                      <p className="px-4 py-3 text-xs text-[var(--color-muted-foreground)]">
+                        No changed keys in this file
+                      </p>
+                    ) : (
+                      changedEntries.map((entry) => (
+                        <div key={entry.key} className="px-4 py-2.5">
+                          <p className="font-mono text-[10px] text-[var(--color-muted-foreground)] mb-1">
+                            {entry.key}
+                          </p>
+                          <p className="font-mono text-xs text-[var(--color-success)]">
+                            + &quot;{entry.value}&quot;
+                          </p>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
@@ -222,6 +242,16 @@ export function PublishView({
               <StatRow label="Unreviewed" value={statusCounts.unreviewed} color="text-[var(--color-muted-foreground)]" />
             </div>
           </div>
+
+          {/* Rejected warning */}
+          {statusCounts.rejected > 0 && (
+            <div className="flex items-start gap-2 rounded bg-[var(--color-warning-container)] text-[var(--color-warning)] px-3 py-2 text-xs">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              <span>
+                {statusCounts.rejected} rejected key{statusCounts.rejected !== 1 ? "s" : ""} will be included in this PR.
+              </span>
+            </div>
+          )}
 
           {/* PR title */}
           {!readOnly && (

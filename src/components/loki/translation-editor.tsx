@@ -74,6 +74,7 @@ export function TranslationEditor({
 
   const handlePublished = useCallback(() => {
     editor.clearEdits();
+    setPublishMode(false);
   }, [editor]);
 
   // Handle group selection from panel
@@ -113,6 +114,7 @@ export function TranslationEditor({
         baseBranch={branch}
         installationId={editor.installationId ?? installationId ?? 0}
         files={editor.getPublishPayload()}
+        edits={editor.edits}
         lockPayload={editor.getLockPayload()}
         lockData={editor.lockData}
         primaryKeys={editor.primaryKeys}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Search, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusFilterBar } from "@/components/loki/status-filter-bar";
@@ -66,20 +67,46 @@ export function KeyListPanel({
   owner,
   repo,
 }: KeyListPanelProps) {
-  const nonPrimaryLocales = activeGroup
-    ? activeGroup.files.filter((f) => f.locale !== activeGroup.primaryLocale).map((f) => f.locale)
-    : [];
+  // Memoize non-primary locales to avoid recomputing on every render
+  const nonPrimaryLocales = useMemo(
+    () =>
+      activeGroup
+        ? activeGroup.files
+            .filter((f) => f.locale !== activeGroup.primaryLocale)
+            .map((f) => f.locale)
+        : [],
+    [activeGroup]
+  );
 
-  const getKeyDot = (key: string): { color: string; title: string } => {
-    if (isKeyEdited(key)) return { color: "bg-[var(--color-warning)]", title: "Edited" };
-    const anyMissing = nonPrimaryLocales.some((l) => isKeyMissing(l, key));
-    if (anyMissing) return { color: "bg-[var(--color-destructive)]", title: "Missing in some locales" };
-    const lockStatus = getKeyOverallStatus(lockData, key, nonPrimaryLocales);
-    if (lockStatus === "rejected") return { color: "bg-[var(--color-destructive)]", title: "Rejected" };
-    if (lockStatus === "pending_review") return { color: "bg-[var(--color-warning)]", title: "Pending review" };
-    if (lockStatus === "approved") return { color: "bg-[var(--color-success)]", title: "Approved" };
-    return { color: "bg-[var(--color-muted-foreground)] opacity-40", title: "Unreviewed" };
-  };
+  // Memoize per-key status dots to avoid recomputing on every keystroke
+  const keyDots = useMemo(() => {
+    const map = new Map<string, { color: string; title: string }>();
+    for (const key of filteredKeys) {
+      if (isKeyEdited(key)) {
+        map.set(key, { color: "bg-[var(--color-warning)]", title: "Edited" });
+        continue;
+      }
+      const anyMissing = nonPrimaryLocales.some((l) => isKeyMissing(l, key));
+      if (anyMissing) {
+        map.set(key, { color: "bg-[var(--color-destructive)]", title: "Missing in some locales" });
+        continue;
+      }
+      const lockStatus = getKeyOverallStatus(lockData, key, nonPrimaryLocales);
+      if (lockStatus === "rejected") {
+        map.set(key, { color: "bg-[var(--color-destructive)]", title: "Rejected" });
+      } else if (lockStatus === "pending_review") {
+        map.set(key, { color: "bg-[var(--color-warning)]", title: "Pending review" });
+      } else if (lockStatus === "approved") {
+        map.set(key, { color: "bg-[var(--color-success)]", title: "Approved" });
+      } else {
+        map.set(key, { color: "bg-[var(--color-muted-foreground)] opacity-40", title: "Unreviewed" });
+      }
+    }
+    return map;
+  }, [filteredKeys, lockData, nonPrimaryLocales, isKeyEdited, isKeyMissing]);
+
+  // Use index-based group selection to avoid `|||` separator fragility
+  const activeGroupIndex = activeGroup ? groups.indexOf(activeGroup) : -1;
 
   const allSelected = selectedKeys.size === filteredKeys.length && filteredKeys.length > 0;
 
@@ -90,21 +117,20 @@ export function KeyListPanel({
         <p className="label-caps text-[var(--color-muted-foreground)] mb-1.5">{owner}/{repo}</p>
         {groups.length > 1 && (
           <select
-            value={activeGroup ? `${activeGroup.directory}|||${activeGroup.baseName}` : ""}
+            value={activeGroupIndex >= 0 ? String(activeGroupIndex) : ""}
             onChange={(e) => {
-              const [dir, base] = e.target.value.split("|||");
-              const group = groups.find((g) => g.directory === dir && g.baseName === base);
+              const idx = parseInt(e.target.value, 10);
+              const group = groups[idx];
               if (group) onSelectGroup(group);
             }}
             className="w-full text-xs rounded bg-[var(--color-surface-container)] text-[var(--color-foreground)] px-2 py-1 outline-none"
           >
-            {groups.map((g) => {
-              const key = `${g.directory}|||${g.baseName}`;
+            {groups.map((g, i) => {
               const label = g.baseName
                 ? `${g.directory}/${g.baseName}`
                 : g.directory || "root";
               return (
-                <option key={key} value={key}>
+                <option key={i} value={String(i)}>
                   {label} ({g.files.map((f) => localeLabel(f.locale)).join(" ")})
                 </option>
               );
@@ -178,9 +204,7 @@ export function KeyListPanel({
           <>
             {/* Select all row */}
             {filteredKeys.length > 1 && (
-              <div
-                className="flex items-center gap-2 px-2 py-1 border-b border-[color-mix(in_srgb,var(--color-outline-variant)_8%,transparent)]"
-              >
+              <div className="flex items-center gap-2 px-2 py-1 border-b border-[color-mix(in_srgb,var(--color-outline-variant)_8%,transparent)]">
                 <input
                   type="checkbox"
                   checked={allSelected}
@@ -194,7 +218,7 @@ export function KeyListPanel({
             )}
 
             {filteredKeys.map((key) => {
-              const dot = getKeyDot(key);
+              const dot = keyDots.get(key) ?? { color: "bg-[var(--color-muted-foreground)] opacity-40", title: "Unreviewed" };
               const isSelected = selectedKeys.has(key);
               const isActive = selectedKey === key;
 
@@ -209,14 +233,16 @@ export function KeyListPanel({
                   )}
                   onClick={() => onSelectKey(key)}
                 >
-                  {/* Checkbox */}
+                  {/* Checkbox — visible when selected or on hover */}
                   <input
                     type="checkbox"
                     checked={isSelected}
                     onChange={() => onToggleKeySelection(key)}
                     onClick={(e) => e.stopPropagation()}
-                    className="h-3 w-3 rounded accent-[var(--color-primary)] shrink-0 opacity-0 group-hover:opacity-100 data-[checked]:opacity-100"
-                    data-checked={isSelected ? "" : undefined}
+                    className={cn(
+                      "h-3 w-3 rounded accent-[var(--color-primary)] shrink-0 transition-opacity",
+                      isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    )}
                   />
                   {/* Status dot */}
                   <span
