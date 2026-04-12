@@ -9,12 +9,16 @@ interface Props {
 export default async function UnauthorizedPage({ searchParams }: Props) {
   const { error } = await searchParams;
 
+  // Only show specific messages for known NextAuth error codes.
+  // When error is absent (direct navigation) show a generic message.
   const message =
     error === "AccessDenied"
-      ? `Your GitHub account is not authorised to access ${brand.name}.`
+      ? `Your GitHub account is not authorised to access ${brand.name}. Contact the admin to request access.`
       : error === "Configuration"
-      ? "There is a configuration issue. Please contact the admin."
-      : "An unexpected error occurred during sign-in.";
+      ? "There is a configuration issue with the sign-in setup. Please contact the admin."
+      : error
+      ? "An error occurred during sign-in. Please try again or contact the admin."
+      : `You do not have access to ${brand.name}.`;
 
   return (
     <div
@@ -42,8 +46,6 @@ export default async function UnauthorizedPage({ searchParams }: Props) {
         </h1>
         <p className="text-sm text-[var(--color-muted-foreground)] mb-8 leading-relaxed">
           {message}
-          <br />
-          Contact the admin to request access.
         </p>
         <Link
           href={`/${LOKI_DEFAULT_LOCALE}/login`}
