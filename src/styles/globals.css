@@ -1,0 +1,165 @@
+@import "tailwindcss";
+
+/* ============================================================
+   DESIGN TOKENS — from Stitch design system
+   ============================================================ */
+
+@theme {
+  /* Fonts */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Radius */
+  --radius: 0.5rem;
+
+  /* Colors — dark (default) */
+  --color-background:           #131313;
+  --color-foreground:           #e5e2e1;
+  --color-muted:                #1c1b1b;
+  --color-muted-foreground:     #c3c6d7;
+  --color-border:               color-mix(in srgb, #434655 15%, transparent);
+  --color-card:                 #201f1f;
+  --color-card-foreground:      #e5e2e1;
+  --color-sidebar:              #1c1b1b;
+  --color-accent:               #2563eb;
+  --color-accent-foreground:    #eeefff;
+  --color-primary:              #b4c5ff;
+  --color-primary-foreground:   #002a78;
+  --color-secondary:            #d2bbff;
+  --color-secondary-foreground: #3f008e;
+  --color-secondary-container:  #6001d1;
+  --color-destructive:          #ffb4ab;
+  --color-destructive-container:#93000a;
+  --color-success:              #62df7d;
+  --color-success-container:    #007f36;
+  --color-warning:              #ffd066;
+  --color-warning-container:    #8a5c00;
+  --color-ai:                   #d2bbff;
+  --color-ai-container:         #6001d1;
+
+  /* Surface hierarchy */
+  --color-surface:                    #131313;
+  --color-surface-dim:                #131313;
+  --color-surface-bright:             #3a3939;
+  --color-surface-container-lowest:   #0e0e0e;
+  --color-surface-container-low:      #1c1b1b;
+  --color-surface-container:          #201f1f;
+  --color-surface-container-high:     #2a2a2a;
+  --color-surface-container-highest:  #353534;
+  --color-surface-variant:            #353534;
+  --color-outline:                    #8d90a0;
+  --color-outline-variant:            #434655;
+
+  /* Tertiary (success) */
+  --color-tertiary:           #62df7d;
+  --color-tertiary-container: #007f36;
+
+  /* Inverse */
+  --color-inverse-surface:    #e5e2e1;
+  --color-inverse-on-surface: #313030;
+  --color-inverse-primary:    #0053db;
+
+  /* Error */
+  --color-error:              #ffb4ab;
+  --color-error-container:    #93000a;
+  --color-on-error:           #690005;
+  --color-on-error-container: #ffdad6;
+
+  /* Shadows */
+  --shadow-ambient: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================================
+   LIGHT MODE OVERRIDES
+   ============================================================ */
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-background:       #ffffff;
+    --color-foreground:       #131313;
+    --color-muted:            #f7f7f7;
+    --color-muted-foreground: #6b7280;
+    --color-border:           color-mix(in srgb, #d1d5db 60%, transparent);
+    --color-card:             #ffffff;
+    --color-card-foreground:  #131313;
+    --color-sidebar:          #f7f7f7;
+    --color-surface:          #ffffff;
+    --color-surface-container-low:      #f7f7f7;
+    --color-surface-container:          #f0f0f0;
+    --color-surface-container-high:     #e8e8e8;
+    --color-surface-container-highest:  #e0e0e0;
+  }
+}
+
+/* Dark mode explicit class override (for next-themes) */
+.dark {
+  --color-background:       #131313;
+  --color-foreground:       #e5e2e1;
+  --color-muted:            #1c1b1b;
+  --color-muted-foreground: #c3c6d7;
+  --color-border:           color-mix(in srgb, #434655 15%, transparent);
+  --color-card:             #201f1f;
+  --color-card-foreground:  #e5e2e1;
+  --color-sidebar:          #1c1b1b;
+  --color-surface:          #131313;
+  --color-surface-container-low:      #1c1b1b;
+  --color-surface-container:          #201f1f;
+  --color-surface-container-high:     #2a2a2a;
+  --color-surface-container-highest:  #353534;
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+/* Monospace code text */
+.font-code {
+  font-family: var(--font-mono);
+}
+
+/* Ghost border utility */
+.border-ghost {
+  border: 1px solid color-mix(in srgb, #434655 15%, transparent);
+}
+
+/* Ambient shadow utility */
+.shadow-ambient {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Glass panel utility */
+.glass-panel {
+  background: rgba(53, 53, 52, 0.7);
+  backdrop-filter: blur(20px);
+}
+
+/* Uppercase label utility (design system "authoritative" metadata style) */
+.label-caps {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.6875rem;
+}
+
+/* Scrollbar hiding */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

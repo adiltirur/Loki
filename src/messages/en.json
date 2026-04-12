@@ -1,0 +1,128 @@
+{
+  "nav": {
+    "translations": "Translations",
+    "projects": "Projects",
+    "pullRequests": "Pull Requests",
+    "settings": "Settings",
+    "getStarted": "Log in",
+    "viewOnGitHub": "View on GitHub",
+    "docs": "Docs",
+    "features": "Features",
+    "howItWorks": "How it works",
+    "pricing": "Pricing"
+  },
+  "landing": {
+    "hero": {
+      "headline": "Ship in every language.",
+      "subheading": "Connect your repo, edit strings with AI, publish via PR. Translation management built for dev teams.",
+      "cta": "Install GitHub App",
+      "ctaSecondary": "View on GitHub"
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "step1": { "title": "Install", "description": "Install the GitHub App and grant read or read+write access." },
+      "step2": { "title": "Scan", "description": "Loki detects your .arb and .json files. Pick your source branch." },
+      "step3": { "title": "Edit", "description": "Edit, add, or delete keys with AI suggestions inline." },
+      "step4": { "title": "Publish", "description": "Link a ticket, Loki opens a PR. Or download files if read-only." }
+    },
+    "features": {
+      "title": "Everything your l10n workflow needs",
+      "githubNative": { "title": "GitHub Native", "description": "Install the app, pick a repo and branch. No config files." },
+      "aiSuggestions": { "title": "AI Suggestions", "description": "DeepL + Claude suggest translations as you type." },
+      "prPublish": { "title": "PR-based Publish", "description": "Loki creates the branch and opens the PR. You review and merge." },
+      "ticketLinking": { "title": "Ticket Linking", "description": "Link Jira or GitHub Issues to your translation PR." },
+      "fileFormats": { "title": ".arb + .json", "description": "Flutter and web projects supported out of the box." },
+      "readOnly": { "title": "Read-only mode", "description": "No write access? Download files and manage the PR yourself." }
+    },
+    "pricing": {
+      "title": "Simple pricing",
+      "free": { "name": "Free", "price": "$0/mo", "description": "For indie devs and small projects." },
+      "pro": { "name": "Pro", "price": "$19/mo", "description": "For teams shipping in multiple languages." },
+      "team": { "name": "Team", "price": "$49/mo", "description": "For orgs with multiple repos and members." }
+    },
+    "footer": {
+      "copyright": "© 2026 Loki. All rights reserved.",
+      "privacy": "Privacy",
+      "terms": "Terms"
+    }
+  },
+  "app": {
+    "onboarding": {
+      "connectRepo": "Connect a repository",
+      "choosePermission": "Choose permission level",
+      "readWrite": "Read + Write (recommended)",
+      "readWriteDesc": "Loki creates branches and PRs for you",
+      "readOnly": "Read only",
+      "readOnlyDesc": "Download files and manage PRs yourself",
+      "selectBranch": "Select source branch",
+      "scanning": "Scanning repository...",
+      "scanComplete": "Found {files} files, {keys} keys"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "totalKeys": "Total Keys",
+      "missingTranslations": "Missing Translations",
+      "pendingPRs": "Pending PRs",
+      "aiSuggestions": "AI Suggestions",
+      "openEditor": "Open Editor"
+    },
+    "editor": {
+      "sourceString": "Source (English)",
+      "targetString": "Translation",
+      "aiSuggestion": "AI Suggestion",
+      "accept": "Accept",
+      "dismiss": "Dismiss",
+      "noKeySelected": "Select a key to start translating",
+      "pendingChanges": "{count} changes pending",
+      "publish": "Publish",
+      "download": "Download changes"
+    },
+    "publish": {
+      "title": "Publish translations",
+      "summary": "{count} keys changed across {files} files",
+      "ticketLabel": "Link a ticket (optional)",
+      "ticketPlaceholder": "https://jira.../TICKET-123 or #42",
+      "skipTicket": "Skip — publish without ticket",
+      "createPR": "Create PR",
+      "downloadFiles": "Download files",
+      "branchName": "Branch: {branch}",
+      "success": "PR created successfully",
+      "viewPR": "View PR on GitHub"
+    },
+    "permissions": {
+      "readOnly": "Read-only mode",
+      "readOnlyTooltip": "Write access not granted — download files to manage PR manually"
+    },
+    "settings": {
+      "title": "Settings",
+      "integrations": "Integrations",
+      "repos": "Repositories",
+      "appearance": "Appearance",
+      "language": "Language",
+      "account": "Account",
+      "githubConnected": "GitHub connected",
+      "reconnect": "Reconnect",
+      "signOut": "Sign out"
+    }
+  },
+  "auth": {
+    "continueWithGitHub": "Continue with GitHub",
+    "tagline": "Your strings, every language.",
+    "disclaimer": "Loki will request access to your repositories. You choose which ones.",
+    "failed": "Authentication failed — please try again.",
+    "retry": "Try again",
+    "signingIn": "Signing in..."
+  },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search...",
+    "noResults": "No results found.",
+    "optional": "optional"
+  }
+}
