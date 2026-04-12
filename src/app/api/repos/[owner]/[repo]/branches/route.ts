@@ -51,12 +51,8 @@ export async function GET(
       //    installation's granted scope, causing the catch below to try the next id.
       await octokit.repos.get({ owner, repo });
       // octokit.paginate exhausts all pages automatically — no branch count cap.
-      const data = await octokit.paginate(octokit.repos.listBranches, {
-        owner,
-        repo,
-      });
-      const branches = data.map((b) => b.name);
-      return NextResponse.json({ branches });
+      const branches = await octokit.paginate(octokit.repos.listBranches, { owner, repo });
+      return NextResponse.json({ branches: branches.map((b) => b.name) });
     } catch (err) {
       lastError = err;
     }
