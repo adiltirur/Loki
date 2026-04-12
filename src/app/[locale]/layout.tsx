@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
+import { ToastProvider } from "@/components/ui/toaster";
 import { brand } from "@/config/brand";
 import "@/styles/globals.css";
 
@@ -38,7 +39,9 @@ export default async function LocaleLayout({
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
             <NextIntlClientProvider messages={messages}>
-              {children}
+              <ToastProvider>
+                {children}
+              </ToastProvider>
             </NextIntlClientProvider>
           </ThemeProvider>
         </SessionProvider>

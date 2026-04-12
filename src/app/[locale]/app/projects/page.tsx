@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   FolderOpen,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { BranchPicker } from "@/components/loki/branch-picker";
 import type { GithubRepo } from "@/lib/github";
 
 const GITHUB_APP_NAME = process.env.NEXT_PUBLIC_GITHUB_APP_NAME ?? "loki-app";
@@ -28,9 +29,11 @@ export default function ProjectsPage({
   params: Promise<{ locale: string }>;
 }) {
   const t = useTranslations("nav");
+  const router = useRouter();
   const [repos, setRepos] = useState<GithubRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [locale, setLocale] = useState("en");
+  const [pickerRepo, setPickerRepo] = useState<GithubRepo | null>(null);
 
   useEffect(() => {
     params.then((p) => setLocale(p.locale));
@@ -43,6 +46,13 @@ export default function ProjectsPage({
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const handleBranchSelect = (branch: string) => {
+    if (!pickerRepo) return;
+    router.push(
+      `/${locale}/app/translations?owner=${pickerRepo.owner}&repo=${pickerRepo.name}&branch=${branch}&installationId=${pickerRepo.installationId}`
+    );
+  };
 
   return (
     <div>
@@ -63,7 +73,16 @@ export default function ProjectsPage({
       ) : repos.length === 0 ? (
         <EmptyState locale={locale} />
       ) : (
-        <RepoGrid repos={repos} locale={locale} />
+        <RepoGrid repos={repos} onOpenRepo={setPickerRepo} />
+      )}
+
+      {pickerRepo && (
+        <BranchPicker
+          repo={pickerRepo}
+          open={pickerRepo !== null}
+          onOpenChange={(open) => { if (!open) setPickerRepo(null); }}
+          onSelect={handleBranchSelect}
+        />
       )}
     </div>
   );
@@ -101,16 +120,16 @@ function EmptyState({ locale }: { locale: string }) {
   );
 }
 
-function RepoGrid({ repos, locale }: { repos: GithubRepo[]; locale: string }) {
+function RepoGrid({ repos, onOpenRepo }: { repos: GithubRepo[]; onOpenRepo: (repo: GithubRepo) => void }) {
   const canWrite = (r: GithubRepo) => r.permissions.contents === "write";
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {repos.map((repo) => (
-        <Link
+        <button
           key={repo.id}
-          href={`/${locale}/app/translations?owner=${repo.owner}&repo=${repo.name}&branch=${repo.defaultBranch}&installationId=${repo.installationId}`}
-          className="block rounded bg-[var(--color-card)] p-4 hover:bg-[var(--color-surface-container-high)] transition-colors group"
+          onClick={() => onOpenRepo(repo)}
+          className="block rounded bg-[var(--color-card)] p-4 hover:bg-[var(--color-surface-container-high)] transition-colors group text-left"
         >
           <div className="flex items-start justify-between gap-2 mb-3">
             <div className="flex items-center gap-2 min-w-0">
@@ -146,7 +165,7 @@ function RepoGrid({ repos, locale }: { repos: GithubRepo[]; locale: string }) {
               Open translations →
             </span>
           </div>
-        </Link>
+        </button>
       ))}
     </div>
   );

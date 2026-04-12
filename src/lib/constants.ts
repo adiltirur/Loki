@@ -3,7 +3,7 @@ export const LOKI_DEFAULT_LOCALE = "en";
 export const LOKI_SUPPORTED_FILE_TYPES = [".arb", ".json"] as const;
 export const LOKI_BRANCH_PREFIX = "loki/translations";
 export const LOKI_PR_DESCRIPTION_TEMPLATE =
-  "Translation update via Loki\n\nChanged keys: {count}\nFiles: {files}\nTicket: {ticket}";
+  "Translation update via Loki\n\nChanged keys: {count}\nFiles: {files}\nTicket: {ticket}{approvalStats}";
 
 export const LOKI_PERMISSION = {
   READ: "read",
