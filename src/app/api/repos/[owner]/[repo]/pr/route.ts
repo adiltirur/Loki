@@ -53,6 +53,10 @@ export async function POST(
     return NextResponse.json({ error: "No files provided" }, { status: 400 });
   }
 
+  if (!statusCounts || typeof statusCounts.approved !== "number") {
+    return NextResponse.json({ error: "statusCounts is required" }, { status: 400 });
+  }
+
   const newBranch = lokiBranchName();
   const changedKeyCount = files.reduce((n, f) => n + f.entries.length, 0);
   const fileList = files.map((f) => f.path).join(", ");

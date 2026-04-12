@@ -118,8 +118,11 @@ export function KeyListPanel({
           <select
             value={activeGroup ? `${activeGroup.directory}:${activeGroup.baseName}` : ""}
             onChange={(e) => {
-              const [dir, base] = e.target.value.split(":");
-              const group = groups.find((g) => g.directory === dir && g.baseName === (base ?? ""));
+              const val = e.target.value;
+              const colonIdx = val.indexOf(":");
+              const dir = val.slice(0, colonIdx);
+              const base = val.slice(colonIdx + 1);
+              const group = groups.find((g) => g.directory === dir && g.baseName === base);
               if (group) onSelectGroup(group);
             }}
             className="w-full text-xs rounded bg-[var(--color-surface-container)] text-[var(--color-foreground)] px-2 py-1 outline-none"

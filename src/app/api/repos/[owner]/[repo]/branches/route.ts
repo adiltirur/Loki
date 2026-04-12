@@ -44,6 +44,8 @@ export async function GET(
   for (const installationId of installationIds) {
     try {
       const octokit = await getInstallationOctokit(installationId);
+      // Verify this installation can access the requested repo (throws 404 otherwise)
+      await octokit.repos.get({ owner, repo });
       // Use paginate to fetch all branches (not capped at 100)
       const data = await octokit.paginate(octokit.repos.listBranches, {
         owner,

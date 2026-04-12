@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertTriangle, ArrowLeft, Check, ChevronDown, ChevronRight, ExternalLink, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,12 @@ export function PublishView({
   const nonPrimaryLocales = locales;
   const statusCounts = getStatusCounts(lockData, primaryKeys, nonPrimaryLocales);
 
+  // Reset acknowledgement whenever the rejected count changes so the user
+  // must re-confirm if they go back and change review statuses.
+  useEffect(() => {
+    setAcknowledgeRejected(false);
+  }, [statusCounts.rejected]);
+
   /**
    * Build the set of keys that actually changed in a given file path.
    * A key is "changed" if it appears in any locale's edits map, or if the
@@ -82,6 +88,9 @@ export function PublishView({
           baseBranch,
           ticketUrl: ticketUrl || undefined,
           prTitle,
+          // Full entries are intentional — translation files must be written as
+          // complete files (not partial diffs). The diff UI above uses
+          // getChangedEntriesForFile to display only changed keys.
           files: files.map((f) => ({
             path: f.path,
             entries: f.entries,
