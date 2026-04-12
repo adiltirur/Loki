@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   FolderOpen,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { BranchPicker } from "@/components/loki/branch-picker";
 import type { GithubRepo } from "@/lib/github";
 
 const GITHUB_APP_NAME = process.env.NEXT_PUBLIC_GITHUB_APP_NAME ?? "loki-app";
@@ -28,9 +29,11 @@ export default function ProjectsPage({
   params: Promise<{ locale: string }>;
 }) {
   const t = useTranslations("nav");
+  const router = useRouter();
   const [repos, setRepos] = useState<GithubRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [locale, setLocale] = useState("en");
+  const [pickerRepo, setPickerRepo] = useState<GithubRepo | null>(null);
 
   useEffect(() => {
     params.then((p) => setLocale(p.locale));
@@ -43,6 +46,29 @@ export default function ProjectsPage({
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const handleBranchSelect = (branch: string) => {
+    if (!pickerRepo) return;
+    // Validate owner/repo against GitHub's naming rules.
+    // owner: alphanumerics, hyphens, underscores (permissive to support both
+    //        GitHub usernames and org names, which differ slightly).
+    // repo:  alphanumerics, hyphens, dots, underscores.
+    // branch: reject path traversal sequences, null bytes, and control characters.
+    // These checks apply before the value is used in any API call or URL path.
+    // installationId: must be a positive integer.
+    if (!pickerRepo.owner || !/^[a-zA-Z0-9_-]+$/.test(pickerRepo.owner)) return;
+    if (!pickerRepo.name || !/^[a-zA-Z0-9_.\-]+$/.test(pickerRepo.name)) return;
+    if (!branch || branch.includes('..') || branch.includes('\0') || /[\x00-\x1f\x7f]/.test(branch)) return;
+    const installationId = parseInt(String(pickerRepo.installationId), 10);
+    if (!Number.isFinite(installationId) || installationId <= 0) return;
+    const qs = new URLSearchParams({
+      owner: pickerRepo.owner,
+      repo: pickerRepo.name,
+      branch,
+      installationId: String(installationId),
+    });
+    router.push(`/${locale}/app/translations?${qs}`);
+  };
 
   return (
     <div>
@@ -63,7 +89,16 @@ export default function ProjectsPage({
       ) : repos.length === 0 ? (
         <EmptyState locale={locale} />
       ) : (
-        <RepoGrid repos={repos} locale={locale} />
+        <RepoGrid repos={repos} onOpenRepo={setPickerRepo} />
+      )}
+
+      {pickerRepo && (
+        <BranchPicker
+          repo={pickerRepo}
+          open={pickerRepo !== null}
+          onOpenChange={(open) => { if (!open) setPickerRepo(null); }}
+          onSelect={handleBranchSelect}
+        />
       )}
     </div>
   );
@@ -101,16 +136,16 @@ function EmptyState({ locale }: { locale: string }) {
   );
 }
 
-function RepoGrid({ repos, locale }: { repos: GithubRepo[]; locale: string }) {
+function RepoGrid({ repos, onOpenRepo }: { repos: GithubRepo[]; onOpenRepo: (repo: GithubRepo) => void }) {
   const canWrite = (r: GithubRepo) => r.permissions.contents === "write";
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {repos.map((repo) => (
-        <Link
+        <button
           key={repo.id}
-          href={`/${locale}/app/translations?owner=${repo.owner}&repo=${repo.name}&branch=${repo.defaultBranch}&installationId=${repo.installationId}`}
-          className="block rounded bg-[var(--color-card)] p-4 hover:bg-[var(--color-surface-container-high)] transition-colors group"
+          onClick={() => onOpenRepo(repo)}
+          className="block rounded bg-[var(--color-card)] p-4 hover:bg-[var(--color-surface-container-high)] transition-colors group text-left"
         >
           <div className="flex items-start justify-between gap-2 mb-3">
             <div className="flex items-center gap-2 min-w-0">
@@ -146,7 +181,7 @@ function RepoGrid({ repos, locale }: { repos: GithubRepo[]; locale: string }) {
               Open translations →
             </span>
           </div>
-        </Link>
+        </button>
       ))}
     </div>
   );

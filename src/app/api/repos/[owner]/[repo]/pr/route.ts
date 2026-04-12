@@ -7,16 +7,29 @@ import { LOKI_PR_DESCRIPTION_TEMPLATE } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
+interface StatusCounts {
+  approved: number;
+  pending_review: number;
+  rejected: number;
+  unreviewed: number;
+}
+
 interface PRRequestBody {
   installationId: number;
   baseBranch: string;
   ticketUrl?: string;
+  prTitle?: string;
   files: Array<{
     path: string;
     entries: L10nEntry[];
     raw: Record<string, unknown>;
     format: "arb" | "json";
   }>;
+  lockFile?: {
+    path: string;
+    content: string;
+  };
+  statusCounts: StatusCounts;
 }
 
 /**
@@ -34,26 +47,40 @@ export async function POST(
 
   const { owner, repo } = await params;
   const body: PRRequestBody = await req.json();
-  const { installationId, baseBranch, ticketUrl, files } = body;
+  const { installationId, baseBranch, ticketUrl, prTitle, files, lockFile, statusCounts } = body;
 
   if (!files?.length) {
     return NextResponse.json({ error: "No files provided" }, { status: 400 });
+  }
+
+  if (!statusCounts || typeof statusCounts.approved !== "number") {
+    return NextResponse.json({ error: "statusCounts is required" }, { status: 400 });
   }
 
   const newBranch = lokiBranchName();
   const changedKeyCount = files.reduce((n, f) => n + f.entries.length, 0);
   const fileList = files.map((f) => f.path).join(", ");
 
-  const prTitle = `chore(i18n): update ${changedKeyCount} translation key${changedKeyCount !== 1 ? "s" : ""}`;
+  const title = prTitle ?? `chore(i18n): update ${changedKeyCount} translation key${changedKeyCount !== 1 ? "s" : ""}`;
+
+  const approvalLine = `\nApproved: ${statusCounts.approved} | Pending: ${statusCounts.pending_review} | Rejected: ${statusCounts.rejected} | Unreviewed: ${statusCounts.unreviewed}`;
+
   const prBody = LOKI_PR_DESCRIPTION_TEMPLATE
     .replace("{count}", String(changedKeyCount))
     .replace("{files}", fileList)
-    .replace("{ticket}", ticketUrl || "—");
+    .replace("{ticket}", ticketUrl || "—")
+    .replace("{approvalStats}", approvalLine);
 
-  const serializedFiles = files.map((f) => ({
+  // Serialize translation files
+  const serializedFiles: { path: string; content: string }[] = files.map((f) => ({
     path: f.path,
     content: serializeEntries(f.entries, f.raw, f.format),
   }));
+
+  // Include lock file if provided
+  if (lockFile) {
+    serializedFiles.push({ path: lockFile.path, content: lockFile.content });
+  }
 
   try {
     const pr = await createPR(installationId, {
@@ -62,7 +89,7 @@ export async function POST(
       baseBranch,
       newBranch,
       files: serializedFiles,
-      title: prTitle,
+      title,
       body: prBody,
     });
     return NextResponse.json({ pr });
