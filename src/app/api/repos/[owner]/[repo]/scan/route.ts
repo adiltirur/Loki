@@ -32,10 +32,11 @@ export async function GET(
   for (const installationId of installationIds) {
     try {
       const files = await scanRepo(installationId, owner, repo, branch);
+      const userId = session.user.id;
       await db.repoScan.upsert({
-        where: { owner_repo_branch: { owner, repo, branch } },
+        where: { userId_owner_repo_branch: { userId, owner, repo, branch } },
         update: { installationId, fileCount: files.length, filePaths: JSON.stringify(files.map((f) => f.path)), scannedAt: new Date() },
-        create: { installationId, owner, repo, branch, fileCount: files.length, filePaths: JSON.stringify(files.map((f) => f.path)) },
+        create: { userId, installationId, owner, repo, branch, fileCount: files.length, filePaths: JSON.stringify(files.map((f) => f.path)) },
       });
       return NextResponse.json({ files, installationId });
     } catch (err) {

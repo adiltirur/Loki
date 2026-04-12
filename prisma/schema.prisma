@@ -19,6 +19,7 @@ model Installation {
 
 model RepoScan {
   id             String   @id @default(cuid())
+  userId         String
   installationId Int
   owner          String
   repo           String
@@ -27,6 +28,6 @@ model RepoScan {
   filePaths      String   // JSON array of l10n file paths
   scannedAt      DateTime @default(now())
 
-  @@unique([owner, repo, branch])
-  @@index([installationId])
+  @@unique([userId, owner, repo, branch])
+  @@index([userId])
 }

@@ -181,19 +181,20 @@ export default async function DashboardPage({
         .filter((r): r is PromiseFulfilledResult<GithubRepo[]> => r.status === "fulfilled")
         .flatMap((r) => r.value);
 
+      const repoKeys = new Set(repos.map((r) => `${r.owner}/${r.name}`));
       const scans = await db.repoScan.findMany({
-        where: {
-          installationId: { in: installations.map((i) => i.installationId) },
-        },
+        where: { userId: session.user.id },
         orderBy: { scannedAt: "desc" },
       });
-      scanStats = scans.map((s) => ({
-        owner: s.owner,
-        repo: s.repo,
-        branch: s.branch,
-        fileCount: s.fileCount,
-        scannedAt: s.scannedAt,
-      }));
+      scanStats = scans
+        .filter((s) => repoKeys.has(`${s.owner}/${s.repo}`))
+        .map((s) => ({
+          owner: s.owner,
+          repo: s.repo,
+          branch: s.branch,
+          fileCount: s.fileCount,
+          scannedAt: s.scannedAt,
+        }));
     }
   }
 
