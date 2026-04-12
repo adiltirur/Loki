@@ -8,6 +8,6 @@ export function cn(...inputs: ClassValue[]) {
 
 export function lokiBranchName(): string {
   const now = new Date();
-  const ts = now.toISOString().replace(/[-:T]/g, "").slice(0, 15);
+  const ts = now.toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
   return `${LOKI_BRANCH_PREFIX}-${ts}`;
 }
