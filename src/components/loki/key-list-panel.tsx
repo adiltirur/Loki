@@ -26,7 +26,9 @@ interface KeyListPanelProps {
   onSelectAll: () => void;
   onClearSelection: () => void;
   onAddKey: () => void;
+  /** Must be a stable reference (useCallback) to avoid keyDots useMemo thrashing */
   isKeyEdited: (key: string) => boolean;
+  /** Must be a stable reference (useCallback) to avoid keyDots useMemo thrashing */
   isKeyMissing: (locale: string, key: string) => boolean;
   getStatusCounts: () => Record<LockStatus, number>;
   owner: string;
@@ -105,9 +107,6 @@ export function KeyListPanel({
     return map;
   }, [filteredKeys, lockData, nonPrimaryLocales, isKeyEdited, isKeyMissing]);
 
-  // Use index-based group selection to avoid `|||` separator fragility
-  const activeGroupIndex = activeGroup ? groups.indexOf(activeGroup) : -1;
-
   const allSelected = selectedKeys.size === filteredKeys.length && filteredKeys.length > 0;
 
   return (
@@ -117,20 +116,21 @@ export function KeyListPanel({
         <p className="label-caps text-[var(--color-muted-foreground)] mb-1.5">{owner}/{repo}</p>
         {groups.length > 1 && (
           <select
-            value={activeGroupIndex >= 0 ? String(activeGroupIndex) : ""}
+            value={activeGroup ? `${activeGroup.directory}:${activeGroup.baseName}` : ""}
             onChange={(e) => {
-              const idx = parseInt(e.target.value, 10);
-              const group = groups[idx];
+              const [dir, base] = e.target.value.split(":");
+              const group = groups.find((g) => g.directory === dir && g.baseName === (base ?? ""));
               if (group) onSelectGroup(group);
             }}
             className="w-full text-xs rounded bg-[var(--color-surface-container)] text-[var(--color-foreground)] px-2 py-1 outline-none"
           >
-            {groups.map((g, i) => {
+            {groups.map((g) => {
+              const key = `${g.directory}:${g.baseName}`;
               const label = g.baseName
                 ? `${g.directory}/${g.baseName}`
                 : g.directory || "root";
               return (
-                <option key={i} value={String(i)}>
+                <option key={key} value={key}>
                   {label} ({g.files.map((f) => localeLabel(f.locale)).join(" ")})
                 </option>
               );

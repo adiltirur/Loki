@@ -54,6 +54,7 @@ export function PublishView({
   const [error, setError] = useState<string | null>(null);
   const [prUrl, setPrUrl] = useState<string | null>(null);
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set(files.map((f) => f.path)));
+  const [acknowledgeRejected, setAcknowledgeRejected] = useState(false);
 
   const nonPrimaryLocales = locales;
   const statusCounts = getStatusCounts(lockData, primaryKeys, nonPrimaryLocales);
@@ -64,14 +65,9 @@ export function PublishView({
    * file itself appears in the payload (added/deleted keys).
    */
   const getChangedEntriesForFile = (file: FilePayload): typeof file.entries => {
-    // Collect all keys that were edited across any locale that maps to this file
-    const changedKeys = new Set<string>();
-    for (const [, keyMap] of edits) {
-      for (const key of keyMap.keys()) {
-        changedKeys.add(key);
-      }
-    }
-    return file.entries.filter((e) => changedKeys.has(e.key));
+    const localeEdits = edits.get(file.locale);
+    if (!localeEdits) return [];
+    return file.entries.filter((e) => localeEdits.has(e.key));
   };
 
   const handlePublish = async () => {
@@ -245,11 +241,22 @@ export function PublishView({
 
           {/* Rejected warning */}
           {statusCounts.rejected > 0 && (
-            <div className="flex items-start gap-2 rounded bg-[var(--color-warning-container)] text-[var(--color-warning)] px-3 py-2 text-xs">
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              <span>
-                {statusCounts.rejected} rejected key{statusCounts.rejected !== 1 ? "s" : ""} will be included in this PR.
-              </span>
+            <div className="rounded bg-[var(--color-warning-container)] text-[var(--color-warning)] px-3 py-2 text-xs space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                <span>
+                  {statusCounts.rejected} rejected key{statusCounts.rejected !== 1 ? "s" : ""} will be included in this PR.
+                </span>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={acknowledgeRejected}
+                  onChange={(e) => setAcknowledgeRejected(e.target.checked)}
+                  className="h-3 w-3 rounded accent-[var(--color-warning)]"
+                />
+                <span>I understand and want to proceed</span>
+              </label>
             </div>
           )}
 
@@ -307,7 +314,7 @@ export function PublishView({
             ) : (
               <Button
                 onClick={handlePublish}
-                disabled={loading || files.length === 0}
+                disabled={loading || files.length === 0 || (statusCounts.rejected > 0 && !acknowledgeRejected)}
                 className="w-full"
               >
                 {loading ? "Creating PR..." : "Create PR"}

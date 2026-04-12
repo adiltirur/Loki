@@ -29,7 +29,7 @@ interface PRRequestBody {
     path: string;
     content: string;
   };
-  statusCounts?: StatusCounts;
+  statusCounts: StatusCounts;
 }
 
 /**
@@ -59,9 +59,7 @@ export async function POST(
 
   const title = prTitle ?? `chore(i18n): update ${changedKeyCount} translation key${changedKeyCount !== 1 ? "s" : ""}`;
 
-  const approvalLine = statusCounts
-    ? `\nApproved: ${statusCounts.approved} | Pending: ${statusCounts.pending_review} | Rejected: ${statusCounts.rejected} | Unreviewed: ${statusCounts.unreviewed}`
-    : "";
+  const approvalLine = `\nApproved: ${statusCounts.approved} | Pending: ${statusCounts.pending_review} | Rejected: ${statusCounts.rejected} | Unreviewed: ${statusCounts.unreviewed}`;
 
   const prBody = LOKI_PR_DESCRIPTION_TEMPLATE
     .replace("{count}", String(changedKeyCount))

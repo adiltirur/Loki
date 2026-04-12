@@ -27,6 +27,7 @@ export interface LoadedLocaleFile {
 
 export interface FilePayload {
   path: string;
+  locale: string;
   entries: L10nEntry[];
   raw: Record<string, unknown>;
   format: "arb" | "json";
@@ -413,7 +414,7 @@ export function useEditorState(): UseEditorStateReturn {
         }
       }
 
-      payloads.push({ path: ref.path, entries, raw: loaded.raw, format: ref.format });
+      payloads.push({ path: ref.path, locale, entries, raw: loaded.raw, format: ref.format });
     }
 
     return payloads;
