@@ -53,12 +53,12 @@ export default function ProjectsPage({
     // owner: alphanumerics, hyphens, underscores (permissive to support both
     //        GitHub usernames and org names, which differ slightly).
     // repo:  alphanumerics, hyphens, dots, underscores.
-    // branch: URLSearchParams percent-encodes all special chars so path traversal
-    //         is impossible in the query string; only reject null bytes (never valid).
+    // branch: reject path traversal sequences, null bytes, and control characters.
+    // These checks apply before the value is used in any API call or URL path.
     // installationId: must be a positive integer.
     if (!pickerRepo.owner || !/^[a-zA-Z0-9_-]+$/.test(pickerRepo.owner)) return;
     if (!pickerRepo.name || !/^[a-zA-Z0-9_.\-]+$/.test(pickerRepo.name)) return;
-    if (!branch || branch.includes('\0')) return;
+    if (!branch || branch.includes('..') || branch.includes('\0') || /[\x00-\x1f\x7f]/.test(branch)) return;
     const installationId = parseInt(String(pickerRepo.installationId), 10);
     if (!Number.isFinite(installationId) || installationId <= 0) return;
     const qs = new URLSearchParams({
