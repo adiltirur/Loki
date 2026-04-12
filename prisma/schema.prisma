@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Installation {
+  id             String   @id @default(cuid())
+  userId         String
+  installationId Int
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, installationId])
+  @@index([userId])
+}
+
+model RepoScan {
+  id             String   @id @default(cuid())
+  userId         String
+  owner          String
+  repo           String
+  branch         String
+  fileCount      Int
+  filePaths      String   // JSON array of l10n file paths
+  scannedAt      DateTime @default(now())
+
+  @@unique([userId, owner, repo, branch])
+  @@index([userId])
+}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { addInstallation } from "@/lib/installation-store";
+import { addInstallation, removeInstallation } from "@/lib/installation-store";
 import { LOKI_DEFAULT_LOCALE } from "@/lib/constants";
 
 export const runtime = "nodejs";
@@ -19,10 +19,9 @@ export async function GET(req: NextRequest) {
   const setupAction = req.nextUrl.searchParams.get("setup_action");
 
   if (installationId && setupAction !== "delete") {
-    addInstallation(session.user.id, Number(installationId));
+    await addInstallation(session.user.id, Number(installationId));
   } else if (installationId && setupAction === "delete") {
-    const { removeInstallation } = await import("@/lib/installation-store");
-    removeInstallation(session.user.id, Number(installationId));
+    await removeInstallation(session.user.id, Number(installationId));
   }
 
   return NextResponse.redirect(

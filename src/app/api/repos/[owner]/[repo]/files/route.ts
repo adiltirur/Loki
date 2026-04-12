@@ -29,7 +29,7 @@ export async function GET(
 
   const installationIds = installationIdParam
     ? [Number(installationIdParam)]
-    : getInstallations(session.user.id);
+    : await getInstallations(session.user.id);
 
   let lastError: unknown;
   for (const installationId of installationIds) {

@@ -1,9 +1,13 @@
 import { useTranslations } from "next-intl";
-import { Globe, AlertCircle, GitPullRequest, Sparkles, ArrowUpRight } from "lucide-react";
+import { Globe, GitPullRequest, Sparkles, FileCode2, ArrowUpRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { listReposForInstallation } from "@/lib/github";
+import type { GithubRepo } from "@/lib/github";
 
 function StatCard({
   label,
@@ -32,14 +36,36 @@ function StatCard({
   );
 }
 
-function DashboardContent({ locale }: { locale: string }) {
+interface ScanStat {
+  owner: string;
+  repo: string;
+  branch: string;
+  fileCount: number;
+  scannedAt: Date;
+}
+
+function DashboardContent({
+  locale,
+  repos,
+  scanStats,
+}: {
+  locale: string;
+  repos: GithubRepo[];
+  scanStats: ScanStat[];
+}) {
   const t = useTranslations("app.dashboard");
 
+  const repoDefaultBranches = new Map(repos.map((r) => [`${r.owner}/${r.name}`, r.defaultBranch]));
+  const defaultBranchStats = scanStats.filter(
+    (s) => repoDefaultBranches.get(`${s.owner}/${s.repo}`) === s.branch
+  );
+  const totalFiles = defaultBranchStats.reduce((sum, s) => sum + s.fileCount, 0);
+
   const stats = [
-    { label: t("totalKeys"), value: "12,482", sub: "+124 this week", icon: Globe },
-    { label: t("missingTranslations"), value: "42", sub: "7%", icon: AlertCircle },
-    { label: t("pendingPRs"), value: "8", sub: "Needs Review", icon: GitPullRequest },
-    { label: t("aiSuggestions"), value: "312", sub: "78% accepted", icon: Sparkles },
+    { label: t("totalKeys"), value: String(repos.length), sub: repos.length === 1 ? "repository" : "repositories", icon: Globe },
+    { label: t("missingTranslations"), value: String(totalFiles), sub: "l10n files found", icon: FileCode2 },
+    { label: t("pendingPRs"), value: "0", sub: "Coming soon", icon: GitPullRequest },
+    { label: t("aiSuggestions"), value: "0", sub: "Coming soon", icon: Sparkles },
   ];
 
   return (
@@ -59,63 +85,76 @@ function DashboardContent({ locale }: { locale: string }) {
             View all <ArrowUpRight className="h-3 w-3" />
           </Link>
         </div>
-        <div className="space-y-3">
-          {[
-            { name: "loki-core-engine", branch: "main", progress: 94, keys: 3, missing: 8 },
-            { name: "loki-web-portal", branch: "v0.3.1", progress: 55, keys: 40, missing: 24 },
-          ].map((proj) => (
-            <div
-              key={proj.name}
-              className="rounded bg-[var(--color-card)] p-4 flex items-center gap-4"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-sm font-medium font-mono truncate">{proj.name}</p>
-                  <Badge variant="language">{proj.branch}</Badge>
+        {repos.length === 0 ? (
+          <div className="rounded bg-[var(--color-card)] p-6 text-center">
+            <p className="text-sm text-[var(--color-muted-foreground)]">No repositories connected yet.</p>
+            <Link href={`/${locale}/app/projects`} className="mt-2 inline-block text-xs text-[var(--color-primary)] hover:underline">
+              Install the GitHub App to get started
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {repos.slice(0, 5).map((repo) => {
+              const scan = scanStats.find((s) => s.owner === repo.owner && s.repo === repo.name && s.branch === repo.defaultBranch);
+              return (
+                <div
+                  key={`${repo.owner}/${repo.name}`}
+                  className="rounded bg-[var(--color-card)] p-4 flex items-center gap-4"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm font-medium font-mono truncate">{repo.name}</p>
+                      <Badge variant="language">{repo.defaultBranch}</Badge>
+                      {!repo.permissions.contents && (
+                        <Badge variant="destructive">Read-only</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-[var(--color-muted-foreground)]">
+                      {repo.owner}
+                      {scan ? ` · ${scan.fileCount} l10n file${scan.fileCount !== 1 ? "s" : ""} found` : " · Not scanned yet"}
+                    </p>
+                  </div>
+                  <Button size="sm" asChild>
+                    <Link
+                      href={`/${locale}/app/translations?owner=${repo.owner}&repo=${repo.name}&branch=${repo.defaultBranch}&installationId=${repo.installationId}`}
+                    >
+                      {t("openEditor")}
+                    </Link>
+                  </Button>
                 </div>
-                <p className="text-xs text-[var(--color-muted-foreground)]">
-                  {proj.keys} on sync · {proj.missing} missing
-                </p>
-                <div className="mt-2 h-1 rounded-full bg-[var(--color-surface-container-high)]">
-                  <div
-                    className="h-full rounded-full bg-[var(--color-accent)] transition-all"
-                    style={{ width: `${proj.progress}%` }}
-                  />
-                </div>
-                <p className="text-xs text-[var(--color-muted-foreground)] mt-1">
-                  Translation Progress · {proj.progress}%
-                </p>
-              </div>
-              <Button size="sm" asChild>
-                <Link href={`/${locale}/app/translations`}>{t("openEditor")}</Link>
-              </Button>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Recent Activity */}
       <div>
         <h2 className="text-sm font-semibold mb-3">Recent Activity</h2>
-        <div className="space-y-2">
-          {[
-            { text: "Alex Chen merged PR #1438", sub: "2 hours ago · loki-core-engine", dot: "success" },
-            { text: "Loki AI suggested 42 translations for Spanish (ES)", sub: "4 hours ago · loki-web-portal", dot: "ai" },
-            { text: "System successfully synced translations with GitHub", sub: "Yesterday · All Projects", dot: "default" },
-            { text: "Error: Failed to fetch translation keys from API", sub: "Yesterday · loki-core-engine", dot: "destructive" },
-          ].map((item, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 rounded bg-[var(--color-card)] p-3"
-            >
-              <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 bg-[var(--color-${item.dot})]`} />
-              <div>
-                <p className="text-xs font-medium">{item.text}</p>
-                <p className="text-xs text-[var(--color-muted-foreground)]">{item.sub}</p>
+        {scanStats.length === 0 ? (
+          <div className="rounded bg-[var(--color-card)] p-4">
+            <p className="text-xs text-[var(--color-muted-foreground)]">No activity yet. Scan a repository to get started.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {scanStats.slice(0, 5).map((scan) => (
+              <div
+                key={`${scan.owner}/${scan.repo}/${scan.branch}`}
+                className="flex items-start gap-3 rounded bg-[var(--color-card)] p-3"
+              >
+                <div className="mt-1.5 h-2 w-2 rounded-full shrink-0 bg-[var(--color-success)]" />
+                <div>
+                  <p className="text-xs font-medium">
+                    Scanned {scan.owner}/{scan.repo} — {scan.fileCount} l10n file{scan.fileCount !== 1 ? "s" : ""} found
+                  </p>
+                  <p className="text-xs text-[var(--color-muted-foreground)]">
+                    {scan.branch} · {scan.scannedAt.toLocaleDateString()}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -127,5 +166,41 @@ export default async function DashboardPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  return <DashboardContent locale={locale} />;
+  const session = await auth();
+
+  let repos: GithubRepo[] = [];
+  let scanStats: ScanStat[] = [];
+
+  if (session?.user?.id) {
+    const installations = await db.installation.findMany({
+      where: { userId: session.user.id },
+      select: { installationId: true },
+    });
+
+    if (installations.length > 0) {
+      const repoResults = await Promise.allSettled(
+        installations.map((inst) => listReposForInstallation(inst.installationId))
+      );
+      repos = repoResults
+        .filter((r): r is PromiseFulfilledResult<GithubRepo[]> => r.status === "fulfilled")
+        .flatMap((r) => r.value);
+
+      const repoKeys = new Set(repos.map((r) => `${r.owner}/${r.name}`));
+      const scans = await db.repoScan.findMany({
+        where: { userId: session.user.id },
+        orderBy: { scannedAt: "desc" },
+      });
+      scanStats = scans
+        .filter((s) => repoKeys.has(`${s.owner}/${s.repo}`))
+        .map((s) => ({
+          owner: s.owner,
+          repo: s.repo,
+          branch: s.branch,
+          fileCount: s.fileCount,
+          scannedAt: s.scannedAt,
+        }));
+    }
+  }
+
+  return <DashboardContent locale={locale} repos={repos} scanStats={scanStats} />;
 }
