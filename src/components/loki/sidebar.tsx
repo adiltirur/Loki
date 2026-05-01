@@ -46,6 +46,8 @@ interface SidebarProps {
 
 export function Sidebar({ locale, session, orgs, activeOrgId }: SidebarProps) {
   const t = useTranslations("nav");
+  const ts = useTranslations("app.sidebar");
+  const tSettings = useTranslations("app.settings");
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -112,7 +114,7 @@ export function Sidebar({ locale, session, orgs, activeOrgId }: SidebarProps) {
             )}
           >
             <Shield className="h-4 w-4 shrink-0" />
-            {!collapsed && <span>Admin</span>}
+            {!collapsed && <span>{t("admin")}</span>}
           </Link>
         )}
       </nav>
@@ -127,7 +129,7 @@ export function Sidebar({ locale, session, orgs, activeOrgId }: SidebarProps) {
                 "text-[var(--color-foreground)] hover:bg-[var(--color-surface-container-high)]",
                 "focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
               )}
-              aria-label="Profile menu"
+              aria-label={ts("profileMenu")}
             >
               <Avatar src={session.image} name={session.name} email={session.email} size={24} />
               {!collapsed && (
@@ -157,7 +159,7 @@ export function Sidebar({ locale, session, orgs, activeOrgId }: SidebarProps) {
                   className="flex items-center gap-2 rounded px-2 py-1.5 text-xs text-[var(--color-foreground)] hover:bg-[var(--color-surface-container-high)] cursor-pointer outline-none"
                 >
                   <Settings className="h-3 w-3" />
-                  Settings
+                  {t("settings")}
                 </Link>
               </DropdownMenu.Item>
               {isSuperAdmin && (
@@ -167,12 +169,12 @@ export function Sidebar({ locale, session, orgs, activeOrgId }: SidebarProps) {
                     className="flex items-center gap-2 rounded px-2 py-1.5 text-xs text-[var(--color-foreground)] hover:bg-[var(--color-surface-container-high)] cursor-pointer outline-none"
                   >
                     <Shield className="h-3 w-3" />
-                    Admin panel
+                    {ts("adminPanel")}
                   </Link>
                 </DropdownMenu.Item>
               )}
               <div className="flex items-center justify-between gap-2 px-2 py-1.5 text-xs text-[var(--color-muted-foreground)]">
-                <span>Theme</span>
+                <span>{ts("themeLabel")}</span>
                 <ThemeToggle />
               </div>
               <DropdownMenu.Separator className="my-1 h-px bg-[color-mix(in_srgb,var(--color-outline-variant)_15%,transparent)]" />
@@ -184,7 +186,7 @@ export function Sidebar({ locale, session, orgs, activeOrgId }: SidebarProps) {
                 }}
               >
                 <LogOut className="h-3 w-3" />
-                Sign out
+                {tSettings("signOut")}
               </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
@@ -199,7 +201,7 @@ export function Sidebar({ locale, session, orgs, activeOrgId }: SidebarProps) {
           ) : (
             <>
               <ChevronLeft className="h-4 w-4 shrink-0" />
-              <span>Collapse</span>
+              <span>{ts("collapse")}</span>
             </>
           )}
         </button>

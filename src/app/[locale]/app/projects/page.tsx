@@ -23,6 +23,7 @@ export default function ProjectsPage({
   params: Promise<{ locale: string }>;
 }) {
   const t = useTranslations("nav");
+  const tProjects = useTranslations("app.projects");
   const router = useRouter();
   const [repos, setRepos] = useState<GithubRepo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,9 +86,9 @@ export default function ProjectsPage({
       ) : repos.length === 0 ? (
         <EmptyState
           icon={FolderOpen}
-          title="No repositories connected"
-          description="Connect GitHub from Settings → Integrations to grant access to repositories on this organization."
-          action={{ label: "Open Settings", href: `/${locale}/app/settings` }}
+          title={tProjects("emptyTitle")}
+          description={tProjects("emptyDescription")}
+          action={{ label: tProjects("emptyAction"), href: `/${locale}/app/settings` }}
         />
       ) : (
         <RepoGrid repos={repos} onOpenRepo={setSubProjectRepo} />
@@ -121,6 +122,7 @@ export default function ProjectsPage({
 }
 
 function RepoGrid({ repos, onOpenRepo }: { repos: GithubRepo[]; onOpenRepo: (repo: GithubRepo) => void }) {
+  const t = useTranslations("app.projects");
   const canWrite = (r: GithubRepo) => r.permissions.contents === "write";
 
   return (
@@ -141,7 +143,7 @@ function RepoGrid({ repos, onOpenRepo }: { repos: GithubRepo[]; onOpenRepo: (rep
               <span className="font-mono text-sm font-medium truncate">{repo.name}</span>
             </div>
             {canWrite(repo) ? null : (
-              <Badge variant="permission" className="shrink-0">Read-only</Badge>
+              <Badge variant="permission" className="shrink-0">{t("readOnlyBadge")}</Badge>
             )}
           </div>
 
@@ -156,7 +158,7 @@ function RepoGrid({ repos, onOpenRepo }: { repos: GithubRepo[]; onOpenRepo: (rep
 
           <div className="mt-3 pt-3 border-t border-[color-mix(in_srgb,var(--color-outline-variant)_15%,transparent)]">
             <span className="text-xs text-[var(--color-primary)] group-hover:underline">
-              Open translations →
+              {t("openTranslations")}
             </span>
           </div>
         </button>

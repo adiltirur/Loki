@@ -55,7 +55,7 @@ export function Topbar({ className }: TopbarProps) {
             {searchValue ? (
               <button
                 type="button"
-                aria-label="Clear search"
+                aria-label={t("common.clearSearch")}
                 onClick={() => setSearchValue("")}
                 className="rounded text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
               >

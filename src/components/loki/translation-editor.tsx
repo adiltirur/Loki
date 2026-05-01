@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import { KeyListPanel } from "@/components/loki/key-list-panel";
 import { MultiLocaleEditor } from "@/components/loki/multi-locale-editor";
@@ -34,6 +35,8 @@ export function TranslationEditor({
 }: TranslationEditorProps) {
   const { data: session } = useSession();
   const { toast } = useToast();
+  const t = useTranslations("app.editor");
+  const tCommon = useTranslations("common");
   const username =
     (session?.user as { githubLogin?: string; login?: string } | undefined)?.githubLogin ??
     (session?.user as { login?: string } | undefined)?.login ??
@@ -53,7 +56,7 @@ export function TranslationEditor({
   if (subProjectName) breadcrumbs.push(subProjectName);
   useTopbarConfig({
     breadcrumbs,
-    search: { enabled: Boolean(owner && repo), placeholder: "Filter keys" },
+    search: { enabled: Boolean(owner && repo), placeholder: tCommon("filterKeys") },
   });
   const { searchValue } = useTopbar();
   useEffect(() => {
@@ -100,9 +103,9 @@ export function TranslationEditor({
 
   const handleTranslate = useCallback(
     (_locale: string, _key: string) => {
-      toast("AI translation coming soon", "info");
+      toast(t("aiComingSoon"), "info");
     },
-    [toast]
+    [toast, t]
   );
 
   const handlePublished = useCallback(() => {
@@ -127,9 +130,9 @@ export function TranslationEditor({
   if (!owner || !repo) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center py-24">
-        <p className="text-sm font-medium">No repository selected</p>
+        <p className="text-sm font-medium">{t("noRepoSelectedTitle")}</p>
         <p className="text-xs text-[var(--color-muted-foreground)]">
-          Go to Projects and open a repository to start editing translations.
+          {t("noRepoSelectedDesc")}
         </p>
       </div>
     );
@@ -196,11 +199,11 @@ export function TranslationEditor({
         <div className="flex flex-1 overflow-auto">
           {!editor.activeGroup ? (
             <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">
-              No localization files found
+              {t("noLocalizationFiles")}
             </div>
           ) : !editor.selectedKey ? (
             <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">
-              Select a key to start translating
+              {t("noKeySelected")}
             </div>
           ) : (
             <MultiLocaleEditor
@@ -233,20 +236,20 @@ export function TranslationEditor({
                 if (e.key === "Enter") handleAddKey();
                 if (e.key === "Escape") { setAddingKey(false); setNewKeyInput(""); }
               }}
-              placeholder="new.key.name"
+              placeholder={t("newKeyPlaceholder")}
               className="font-mono text-xs bg-transparent text-[var(--color-foreground)] outline-none flex-1"
             />
             <button
               onClick={handleAddKey}
               className="text-xs text-[var(--color-primary)] hover:opacity-80"
             >
-              Add
+              {t("add")}
             </button>
             <button
               onClick={() => { setAddingKey(false); setNewKeyInput(""); }}
               className="text-xs text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
             >
-              Cancel
+              {tCommon("cancel")}
             </button>
           </div>
         )}
@@ -255,10 +258,12 @@ export function TranslationEditor({
         {editor.totalChangeCount > 0 && (
           <div className="sticky bottom-0 left-0 right-0 z-10 flex items-center justify-between gap-3 px-6 py-3 bg-[var(--color-card)] border-t border-[color-mix(in_srgb,var(--color-outline-variant)_15%,transparent)] shadow-ambient">
             <span className="text-sm text-[var(--color-muted-foreground)]">
-              {editor.totalChangeCount} key{editor.totalChangeCount !== 1 ? "s" : ""} changed
+              {editor.totalChangeCount === 1
+                ? t("keysChangedOne")
+                : t("keysChangedOther", { count: editor.totalChangeCount })}
             </span>
             <Button size="sm" onClick={() => setPublishMode(true)}>
-              Publish changes
+              {t("publishChanges")}
             </Button>
           </div>
         )}

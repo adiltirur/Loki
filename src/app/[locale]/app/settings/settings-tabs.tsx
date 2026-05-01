@@ -92,9 +92,7 @@ export function SettingsTabs({
 
         <Tabs.Content value="repos">
           {repos.length === 0 ? (
-            <p className="text-sm text-[var(--color-muted-foreground)]">
-              No repositories yet. Connect GitHub from Integrations to add some.
-            </p>
+            <p className="text-sm text-[var(--color-muted-foreground)]">{t("reposEmpty")}</p>
           ) : (
             <ul className="space-y-2">
               {repos.map((r) => (
@@ -108,9 +106,12 @@ export function SettingsTabs({
                       {r.owner}/{r.name}
                     </p>
                     <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5">
-                      {r.lastScannedAt
-                        ? `Last scanned ${new Date(r.lastScannedAt).toLocaleString()} on ${r.lastScannedBranch}`
-                        : `Default branch: ${r.defaultBranch ?? "—"}`}
+                      {r.lastScannedAt && r.lastScannedBranch
+                        ? t("lastScanned", {
+                            at: new Date(r.lastScannedAt).toLocaleString(),
+                            branch: r.lastScannedBranch,
+                          })
+                        : t("defaultBranchLabel", { branch: r.defaultBranch ?? "—" })}
                     </p>
                   </div>
                 </li>
@@ -122,9 +123,9 @@ export function SettingsTabs({
         <Tabs.Content value="appearance">
           <div className="rounded bg-[var(--color-card)] p-4 space-y-3">
             <div>
-              <p className="text-sm font-medium">Theme</p>
+              <p className="text-sm font-medium">{t("themeTitle")}</p>
               <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5">
-                Light, dark, or follow your system.
+                {t("themeDescription")}
               </p>
             </div>
             <ThemeToggleTri />
@@ -144,7 +145,7 @@ export function SettingsTabs({
                     : "border-[color-mix(in_srgb,var(--color-outline-variant)_20%,transparent)] hover:bg-[var(--color-surface-container-high)]"
                 )}
               >
-                {lang === "en" ? "English" : "Deutsch"}
+                {lang === "en" ? t("languageEnglish") : t("languageGerman")}
               </button>
             ))}
           </div>
@@ -155,17 +156,17 @@ export function SettingsTabs({
             <div className="rounded bg-[var(--color-card)] p-4 flex items-center gap-3">
               <Avatar src={session.image} name={session.name} email={session.email} size={40} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{session.name ?? "Account"}</p>
+                <p className="text-sm font-medium truncate">{session.name ?? t("account")}</p>
                 <p className="text-xs text-[var(--color-muted-foreground)] truncate">
                   {session.email}
                 </p>
                 {session.githubLogin && (
                   <p className="text-[11px] text-[var(--color-muted-foreground)] mt-1 font-mono">
-                    @{session.githubLogin} · GitHub
+                    {t("githubProviderLabel", { login: session.githubLogin })}
                   </p>
                 )}
                 {session.role === "super_admin" && (
-                  <p className="text-[11px] text-[var(--color-primary)] mt-1">Super admin</p>
+                  <p className="text-[11px] text-[var(--color-primary)] mt-1">{t("superAdminBadge")}</p>
                 )}
               </div>
             </div>

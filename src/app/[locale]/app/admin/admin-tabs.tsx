@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Plus, ChevronDown, ChevronRight, Mail, Trash2 } from "lucide-react";
 import {
@@ -59,35 +60,36 @@ interface AdminTabsProps {
 }
 
 export function AdminTabs({ orgs, users }: AdminTabsProps) {
+  const t = useTranslations("app.admin");
   const router = useRouter();
   const [tab, setTab] = useState("orgs");
   const [createOpen, setCreateOpen] = useState(false);
   const [expandedOrgId, setExpandedOrgId] = useState<string | null>(null);
   const [inviteFor, setInviteFor] = useState<OrgRow | null>(null);
 
-  useTopbarConfig({ breadcrumbs: ["Admin"] });
+  useTopbarConfig({ breadcrumbs: [t("title")] });
 
   return (
     <div className="max-w-4xl">
-      <h1 className="text-lg font-semibold mb-6">Admin</h1>
+      <h1 className="text-lg font-semibold mb-6">{t("title")}</h1>
 
       <Tabs.Root value={tab} onValueChange={setTab}>
         <Tabs.List className="flex gap-1 mb-6 border-b border-[color-mix(in_srgb,var(--color-outline-variant)_15%,transparent)]">
           {[
-            { id: "orgs", label: "Organizations" },
-            { id: "users", label: "Users" },
-          ].map((t) => (
+            { id: "orgs", label: t("tabsOrgs") },
+            { id: "users", label: t("tabsUsers") },
+          ].map((entry) => (
             <Tabs.Trigger
-              key={t.id}
-              value={t.id}
+              key={entry.id}
+              value={entry.id}
               className={cn(
                 "px-3 py-2 text-sm transition-colors -mb-px focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2",
-                tab === t.id
+                tab === entry.id
                   ? "border-b-2 border-[var(--color-accent)] text-[var(--color-foreground)]"
                   : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
               )}
             >
-              {t.label}
+              {entry.label}
             </Tabs.Trigger>
           ))}
         </Tabs.List>
@@ -95,11 +97,11 @@ export function AdminTabs({ orgs, users }: AdminTabsProps) {
         <Tabs.Content value="orgs">
           <div className="flex justify-end mb-3">
             <Button size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-3.5 w-3.5" /> Create org
+              <Plus className="h-3.5 w-3.5" /> {t("createOrg")}
             </Button>
           </div>
           {orgs.length === 0 ? (
-            <p className="text-sm text-[var(--color-muted-foreground)]">No organizations yet.</p>
+            <p className="text-sm text-[var(--color-muted-foreground)]">{t("noOrgs")}</p>
           ) : (
             <ul className="space-y-2">
               {orgs.map((o) => (
@@ -118,7 +120,7 @@ export function AdminTabs({ orgs, users }: AdminTabsProps) {
 
         <Tabs.Content value="users">
           {users.length === 0 ? (
-            <p className="text-sm text-[var(--color-muted-foreground)]">No users yet.</p>
+            <p className="text-sm text-[var(--color-muted-foreground)]">{t("noUsers")}</p>
           ) : (
             <ul className="space-y-1">
               {users.map((u) => (
@@ -142,7 +144,7 @@ export function AdminTabs({ orgs, users }: AdminTabsProps) {
                         : "bg-[var(--color-surface-container-high)] text-[var(--color-muted-foreground)]"
                     )}
                   >
-                    {u.role.replace("_", " ")}
+                    {u.role === "super_admin" ? t("rolesSuperAdmin") : t("rolesMember")}
                   </span>
                   <span className="text-xs text-[var(--color-muted-foreground)] hidden sm:inline">
                     {u.orgs.map((o) => o.name).join(", ") || "—"}
@@ -190,6 +192,7 @@ function OrgEntry({
   onInvite: () => void;
   onChanged: () => void;
 }) {
+  const t = useTranslations("app.admin");
   return (
     <li className="rounded bg-[var(--color-card)]">
       <button
@@ -201,13 +204,15 @@ function OrgEntry({
           <p className="text-sm font-medium">{org.name}</p>
           <p className="text-xs text-[var(--color-muted-foreground)] font-mono">{org.slug}</p>
         </div>
-        <span className="text-xs text-[var(--color-muted-foreground)]">{org.memberCount} members</span>
+        <span className="text-xs text-[var(--color-muted-foreground)]">
+          {org.memberCount === 1 ? t("memberCountOne") : t("memberCountOther", { count: org.memberCount })}
+        </span>
       </button>
       {expanded && (
         <div className="px-3 pb-3 pt-1 border-t border-[color-mix(in_srgb,var(--color-outline-variant)_15%,transparent)]">
           <div className="flex justify-end pt-2">
             <Button size="sm" variant="secondary" onClick={onInvite}>
-              <Mail className="h-3.5 w-3.5" /> Invite
+              <Mail className="h-3.5 w-3.5" /> {t("invite")}
             </Button>
           </div>
           <MemberList orgId={org.id} onChanged={onChanged} />
@@ -218,13 +223,14 @@ function OrgEntry({
 }
 
 function MemberList({ orgId, onChanged }: { orgId: string; onChanged: () => void }) {
+  const t = useTranslations("app.admin");
   const [members, setMembers] = useState<MemberDetail[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     fetch(`/api/orgs/${orgId}/members`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("load failed"))))
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(t("loadFailed")))))
       .then((d) => {
         if (!cancelled) setMembers(d.members);
       })
@@ -232,7 +238,7 @@ function MemberList({ orgId, onChanged }: { orgId: string; onChanged: () => void
     return () => {
       cancelled = true;
     };
-  }, [orgId]);
+  }, [orgId, t]);
 
   async function updateSeats(memberId: string, seats: number) {
     const res = await fetch(`/api/orgs/${orgId}/members/${memberId}`, {
@@ -246,7 +252,7 @@ function MemberList({ orgId, onChanged }: { orgId: string; onChanged: () => void
   }
 
   async function remove(memberId: string) {
-    if (!confirm("Remove this member from the organization?")) return;
+    if (!confirm(t("removeMemberConfirm"))) return;
     const res = await fetch(`/api/orgs/${orgId}/members/${memberId}`, { method: "DELETE" });
     if (res.ok && members) {
       setMembers(members.filter((m) => m.id !== memberId));
@@ -266,7 +272,7 @@ function MemberList({ orgId, onChanged }: { orgId: string; onChanged: () => void
     );
   }
   if (members.length === 0) {
-    return <p className="text-xs text-[var(--color-muted-foreground)] mt-2">No members yet.</p>;
+    return <p className="text-xs text-[var(--color-muted-foreground)] mt-2">{t("noMembers")}</p>;
   }
   return (
     <ul className="mt-2 space-y-1">
@@ -276,11 +282,11 @@ function MemberList({ orgId, onChanged }: { orgId: string; onChanged: () => void
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium truncate">{m.user.name ?? m.user.email}</p>
             <p className="text-[11px] text-[var(--color-muted-foreground)] truncate">
-              {m.user.email} · {m.role}
+              {m.user.email} · {m.role === "admin" ? t("roleAdmin") : t("roleMember")}
             </p>
           </div>
           <label className="flex items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]">
-            seats
+            {t("seatsLabel")}
             <input
               type="number"
               min={0}
@@ -296,7 +302,7 @@ function MemberList({ orgId, onChanged }: { orgId: string; onChanged: () => void
           <button
             onClick={() => remove(m.id)}
             className="rounded p-1 text-[var(--color-muted-foreground)] hover:text-[var(--color-destructive)] hover:bg-[var(--color-surface-container-high)]"
-            aria-label="Remove member"
+            aria-label={t("removeMemberAria")}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -315,6 +321,7 @@ function CreateOrgDialog({
   onOpenChange: (o: boolean) => void;
   onCreated: () => void;
 }) {
+  const t = useTranslations("app.admin");
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [touched, setTouched] = useState(false);
@@ -341,7 +348,7 @@ function CreateOrgDialog({
     setPending(false);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Failed to create");
+      setError(body.error ?? t("createFailed"));
       return;
     }
     setName("");
@@ -354,25 +361,23 @@ function CreateOrgDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create organization</DialogTitle>
-          <DialogDescription>
-            Pick a name and a URL-safe slug. Slug must be 1–40 chars, lowercase letters, numbers, and dashes.
-          </DialogDescription>
+          <DialogTitle>{t("createOrgTitle")}</DialogTitle>
+          <DialogDescription>{t("createOrgDescription")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <label className="block">
-            <span className="block text-xs text-[var(--color-muted-foreground)] mb-1">Name</span>
+            <span className="block text-xs text-[var(--color-muted-foreground)] mb-1">{t("nameLabel")}</span>
             <Input
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
                 if (!touched) setSlug(autoSlug(e.target.value));
               }}
-              placeholder="Acme Translations"
+              placeholder={t("namePlaceholder")}
             />
           </label>
           <label className="block">
-            <span className="block text-xs text-[var(--color-muted-foreground)] mb-1">Slug</span>
+            <span className="block text-xs text-[var(--color-muted-foreground)] mb-1">{t("slugLabel")}</span>
             <Input
               mono
               value={slug}
@@ -380,17 +385,17 @@ function CreateOrgDialog({
                 setTouched(true);
                 setSlug(e.target.value.toLowerCase());
               }}
-              placeholder="acme-translations"
+              placeholder={t("slugPlaceholder")}
             />
           </label>
           {error && <p className="text-xs text-[var(--color-destructive)]">{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={pending}>
-            Cancel
+            {t("cancel")}
           </Button>
           <Button onClick={submit} disabled={pending || !name.trim() || !slug.trim()}>
-            {pending ? "Creating…" : "Create"}
+            {pending ? t("creating") : t("create")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -409,6 +414,7 @@ function InviteDialog({
   onOpenChange: (o: boolean) => void;
   onInvited: () => void;
 }) {
+  const t = useTranslations("app.admin");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "member">("member");
   const [pending, setPending] = useState(false);
@@ -427,7 +433,7 @@ function InviteDialog({
     setPending(false);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Failed to send");
+      setError(body.error ?? t("inviteFailed"));
       return;
     }
     setSent(true);
@@ -440,31 +446,31 @@ function InviteDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Invite to {org.name}</DialogTitle>
-          <DialogDescription>We&apos;ll email an invite link valid for 24 hours.</DialogDescription>
+          <DialogTitle>{t("inviteTitle", { org: org.name })}</DialogTitle>
+          <DialogDescription>{t("inviteDescription")}</DialogDescription>
         </DialogHeader>
         {sent ? (
-          <p className="text-sm text-[var(--color-success)]">Invite sent to {email}.</p>
+          <p className="text-sm text-[var(--color-success)]">{t("inviteSent", { email })}</p>
         ) : (
           <div className="space-y-3">
             <label className="block">
-              <span className="block text-xs text-[var(--color-muted-foreground)] mb-1">Email</span>
+              <span className="block text-xs text-[var(--color-muted-foreground)] mb-1">{t("emailLabel")}</span>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="teammate@company.com"
+                placeholder={t("emailPlaceholder")}
               />
             </label>
             <label className="block">
-              <span className="block text-xs text-[var(--color-muted-foreground)] mb-1">Role</span>
+              <span className="block text-xs text-[var(--color-muted-foreground)] mb-1">{t("roleLabel")}</span>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as "admin" | "member")}
                 className="h-9 w-full rounded-sm bg-[var(--color-surface-container-lowest)] px-3 text-sm outline-none"
               >
-                <option value="member">Member</option>
-                <option value="admin">Admin</option>
+                <option value="member">{t("roleMember")}</option>
+                <option value="admin">{t("roleAdmin")}</option>
               </select>
             </label>
             {error && <p className="text-xs text-[var(--color-destructive)]">{error}</p>}
@@ -473,10 +479,10 @@ function InviteDialog({
         {!sent && (
           <DialogFooter>
             <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={pending}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button onClick={submit} disabled={pending || !email.trim()}>
-              {pending ? "Sending…" : "Send invite"}
+              {pending ? t("sending") : t("sendInvite")}
             </Button>
           </DialogFooter>
         )}

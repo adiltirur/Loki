@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FolderTree, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,7 @@ export function SubProjectPicker({
   branch,
   onSelect,
 }: SubProjectPickerProps) {
+  const t = useTranslations("app.subProjects");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<SubProjectOption[]>([]);
@@ -73,7 +75,7 @@ export function SubProjectPicker({
         );
         if (!scan.ok) {
           if (!cancelled) {
-            setError("Could not scan repository.");
+            setError(t("scanError"));
             setLoading(false);
           }
           return;
@@ -98,30 +100,29 @@ export function SubProjectPicker({
       }
     })().catch((err) => {
       if (cancelled) return;
-      setError(err.message ?? "Failed to load");
+      setError(err.message ?? t("scanError"));
       setLoading(false);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [open, owner, repo, branch, onSelect, onOpenChange]);
+  }, [open, owner, repo, branch, onSelect, onOpenChange, t]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Select a sub-project</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            We found multiple translation roots in <span className="font-mono">{owner}/{repo}</span>{" "}
-            on <span className="font-mono">{branch}</span>.
+            {t("description", { repo: `${owner}/${repo}`, branch })}
           </DialogDescription>
         </DialogHeader>
 
         {loading ? (
           <div className="flex items-center justify-center py-8 text-[var(--color-muted-foreground)] text-sm gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Scanning repository…
+            {t("scanning")}
           </div>
         ) : error ? (
           <p className="text-xs text-[var(--color-destructive)]">{error}</p>
@@ -145,7 +146,9 @@ export function SubProjectPicker({
                     </p>
                   </div>
                   <span className="text-xs text-[var(--color-muted-foreground)] shrink-0 self-center">
-                    {sp.fileCount} {sp.fileCount === 1 ? "file" : "files"}
+                    {sp.fileCount === 1
+                      ? t("fileCountOne")
+                      : t("fileCountOther", { count: sp.fileCount })}
                   </span>
                 </button>
               </li>

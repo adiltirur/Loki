@@ -3,35 +3,37 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Sun, Moon, Monitor } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
-
-const OPTIONS = [
-  { value: "light", label: "Light", Icon: Sun },
-  { value: "system", label: "System", Icon: Monitor },
-  { value: "dark", label: "Dark", Icon: Moon },
-] as const;
 
 interface ThemeToggleTriProps {
   className?: string;
 }
 
 export function ThemeToggleTri({ className }: ThemeToggleTriProps) {
+  const t = useTranslations("app.settings");
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  const options = [
+    { value: "light", label: t("themeLight"), Icon: Sun },
+    { value: "system", label: t("themeSystem"), Icon: Monitor },
+    { value: "dark", label: t("themeDark"), Icon: Moon },
+  ];
 
   const current = mounted ? theme ?? "system" : "system";
 
   return (
     <div
       role="radiogroup"
-      aria-label="Theme"
+      aria-label={t("themeTitle")}
       className={cn(
         "inline-flex items-center rounded border border-[color-mix(in_srgb,var(--color-outline-variant)_25%,transparent)] bg-[var(--color-surface-container)] p-0.5 gap-0.5",
         className
       )}
     >
-      {OPTIONS.map(({ value, label, Icon }) => {
+      {options.map(({ value, label, Icon }) => {
         const active = current === value;
         return (
           <button

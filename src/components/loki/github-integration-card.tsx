@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { GitBranch, Check, X, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 interface GithubStatus {
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function GithubIntegrationCard({ orgId, canManage }: Props) {
+  const t = useTranslations("app.settings");
   const [status, setStatus] = useState<GithubStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export function GithubIntegrationCard({ orgId, canManage }: Props) {
         if (!cancelled) setStatus(data);
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message ?? "Failed to load status");
+        if (!cancelled) setError(err.message ?? t("githubFailedLoad"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -45,7 +47,7 @@ export function GithubIntegrationCard({ orgId, canManage }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [orgId]);
+  }, [orgId, t]);
 
   const appName = process.env.NEXT_PUBLIC_GITHUB_APP_NAME;
   const installUrl = orgId && appName
@@ -54,13 +56,13 @@ export function GithubIntegrationCard({ orgId, canManage }: Props) {
 
   async function handleDisconnect() {
     if (!orgId) return;
-    if (!confirm("Disconnect GitHub for this organization?")) return;
+    if (!confirm(t("githubDisconnectConfirm"))) return;
     setLoading(true);
     const res = await fetch(`/api/orgs/${orgId}/github`, { method: "DELETE" });
     if (res.ok) {
       setStatus({ connected: false, installationId: null, installedBy: null });
     } else {
-      setError("Failed to disconnect");
+      setError(t("githubFailedDisconnect"));
     }
     setLoading(false);
   }
@@ -79,13 +81,17 @@ export function GithubIntegrationCard({ orgId, canManage }: Props) {
                 <>
                   <Check className="h-3 w-3 text-[var(--color-success)]" />
                   <span className="text-xs text-[var(--color-success)]">
-                    Connected{status.installedBy ? ` · installed by ${status.installedBy}` : ""}
+                    {status.installedBy
+                      ? t("githubInstalledBy", { who: status.installedBy })
+                      : t("githubConnectedShort")}
                   </span>
                 </>
               ) : (
                 <>
                   <X className="h-3 w-3 text-[var(--color-muted-foreground)]" />
-                  <span className="text-xs text-[var(--color-muted-foreground)]">Not connected</span>
+                  <span className="text-xs text-[var(--color-muted-foreground)]">
+                    {t("githubNotConnected")}
+                  </span>
                 </>
               )}
             </div>
@@ -96,12 +102,12 @@ export function GithubIntegrationCard({ orgId, canManage }: Props) {
           <div className="flex items-center gap-2 shrink-0">
             {status?.connected ? (
               <Button size="sm" variant="secondary" onClick={handleDisconnect}>
-                Disconnect
+                {t("githubDisconnect")}
               </Button>
             ) : (
               installUrl && (
                 <Button size="sm" asChild>
-                  <a href={installUrl}>Connect GitHub</a>
+                  <a href={installUrl}>{t("githubConnect")}</a>
                 </Button>
               )
             )}
@@ -114,7 +120,7 @@ export function GithubIntegrationCard({ orgId, canManage }: Props) {
       )}
       {!orgId && (
         <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">
-          Select an active organization first.
+          {t("githubSelectOrgFirst")}
         </p>
       )}
     </div>

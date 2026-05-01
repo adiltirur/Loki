@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Globe, LogOut } from "lucide-react";
 import { brand } from "@/config/brand";
 import { SignOutButton } from "@/components/loki/sign-out-button";
@@ -7,7 +8,8 @@ interface NoOrgScreenProps {
   session: Session;
 }
 
-export function NoOrgScreen({ session }: NoOrgScreenProps) {
+export async function NoOrgScreen({ session }: NoOrgScreenProps) {
+  const t = await getTranslations("app.noOrg");
   const email = session.user?.email ?? "";
 
   return (
@@ -17,13 +19,9 @@ export function NoOrgScreen({ session }: NoOrgScreenProps) {
           <Globe className="h-6 w-6 text-white" />
         </div>
         <h1 className="text-lg font-semibold">{brand.name}</h1>
-        <p className="mt-3 text-sm text-[var(--color-foreground)]">
-          You&apos;re not part of any organization yet.
-        </p>
+        <p className="mt-3 text-sm text-[var(--color-foreground)]">{t("heading")}</p>
         <p className="mt-2 text-xs text-[var(--color-muted-foreground)] leading-relaxed">
-          Ask your {brand.name} admin to invite you to an organization. Once
-          invited, sign in again with this email and you&apos;ll be added
-          automatically.
+          {t("description", { brand: brand.name })}
         </p>
         {email && (
           <p className="mt-4 inline-flex rounded bg-[var(--color-surface-container)] px-3 py-1.5 text-xs text-[var(--color-muted-foreground)] font-mono">
@@ -33,7 +31,7 @@ export function NoOrgScreen({ session }: NoOrgScreenProps) {
         <div className="mt-6">
           <SignOutButton>
             <LogOut className="h-3.5 w-3.5" />
-            <span>Sign out</span>
+            <span>{t("signOut")}</span>
           </SignOutButton>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { Plus, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { StatusFilterBar } from "@/components/loki/status-filter-bar";
 import { EmptyState } from "@/components/loki/empty-state";
@@ -70,6 +71,7 @@ export function KeyListPanel({
   owner,
   repo,
 }: KeyListPanelProps) {
+  const t = useTranslations("app.editor");
   // Memoize non-primary locales to avoid recomputing on every render
   const nonPrimaryLocales = useMemo(
     () =>
@@ -189,18 +191,18 @@ export function KeyListPanel({
       <div className="flex-1 overflow-y-auto no-scrollbar">
         {filteredKeys.length === 0 ? (
           primaryKeys.length === 0 ? (
-            <p className="p-3 text-xs text-[var(--color-muted-foreground)]">No keys found</p>
+            <p className="p-3 text-xs text-[var(--color-muted-foreground)]">{t("noKeysFound")}</p>
           ) : (
             <div className="p-3">
               <EmptyState
                 icon={Search}
-                title="No matching keys"
+                title={t("noKeysMatchTitle")}
                 description={
                   searchQuery
-                    ? `No keys match “${searchQuery}” in the current filter.`
-                    : "Adjust the status filter to see more keys."
+                    ? t("noKeysMatchSearch", { query: searchQuery })
+                    : t("noKeysMatchFilter")
                 }
-                action={searchQuery ? { label: "Clear search", onClick: () => onSearchChange("") } : undefined}
+                action={searchQuery ? { label: t("clearSearch"), onClick: () => onSearchChange("") } : undefined}
               />
             </div>
           )
@@ -272,7 +274,7 @@ export function KeyListPanel({
             className="flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors w-full"
           >
             <Plus className="h-3 w-3" />
-            Add key
+            {t("addKey")}
           </button>
         </div>
       )}

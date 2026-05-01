@@ -16,6 +16,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginPage() {
   const t = useTranslations("auth");
+  const tMagic = useTranslations("auth.magicLink");
   const search = useSearchParams();
   const [state, setState] = useState<AuthState>("idle");
   const [email, setEmail] = useState("");
@@ -43,7 +44,7 @@ export default function LoginPage() {
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
     if (!EMAIL_RE.test(email)) {
-      setErrorMsg("Please enter a valid email.");
+      setErrorMsg(tMagic("invalidEmail"));
       setState("error");
       return;
     }
@@ -88,9 +89,9 @@ export default function LoginPage() {
         {state === "emailSent" ? (
           <div className="rounded p-4 bg-[color-mix(in_srgb,var(--color-success-container)_25%,transparent)] text-center">
             <CheckCircle2 className="h-8 w-8 mx-auto text-[var(--color-success)]" />
-            <p className="mt-3 text-sm font-medium">Check your inbox</p>
+            <p className="mt-3 text-sm font-medium">{tMagic("sentTitle")}</p>
             <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-              We sent a magic link {email ? `to ${email}` : "to your email"}.
+              {email ? tMagic("sentBody", { email }) : tMagic("sentBodyNoEmail")}
             </p>
             <button
               type="button"
@@ -100,7 +101,7 @@ export default function LoginPage() {
                 setEmail("");
               }}
             >
-              Use a different method
+              {tMagic("useDifferent")}
             </button>
           </div>
         ) : (
@@ -126,7 +127,7 @@ export default function LoginPage() {
 
             <div className="my-4 flex items-center gap-3 text-[10px] text-[var(--color-muted-foreground)]">
               <span className="flex-1 h-px bg-[color-mix(in_srgb,var(--color-outline-variant)_25%,transparent)]" />
-              <span className="uppercase tracking-wider">or</span>
+              <span className="uppercase tracking-wider">{tMagic("or")}</span>
               <span className="flex-1 h-px bg-[color-mix(in_srgb,var(--color-outline-variant)_25%,transparent)]" />
             </div>
 
@@ -135,9 +136,9 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder={tMagic("emailPlaceholder")}
                 disabled={state === "emailLoading"}
-                aria-label="Email address"
+                aria-label={tMagic("emailPlaceholder")}
               />
               <Button
                 type="submit"
@@ -150,7 +151,7 @@ export default function LoginPage() {
                 ) : (
                   <Mail className="h-4 w-4" />
                 )}
-                {state === "emailLoading" ? "Sending…" : "Send magic link"}
+                {state === "emailLoading" ? tMagic("sending") : tMagic("send")}
               </Button>
             </form>
 
