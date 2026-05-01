@@ -7,26 +7,126 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Note: SQLite doesn't support native enums via Prisma; role values are
+// strings constrained at the TypeScript layer (see src/lib/roles.ts).
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  githubLogin   String?
+  role          String      @default("member") // "super_admin" | "member"
+  createdAt     DateTime    @default(now())
+  accounts      Account[]
+  orgMembers    OrgMember[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@unique([identifier, token])
+}
+
+model Organization {
+  id        String      @id @default(cuid())
+  name      String
+  slug      String      @unique
+  createdAt DateTime    @default(now())
+  members   OrgMember[]
+  invites   OrgInvite[]
+}
+
+model OrgMember {
+  id        String       @id @default(cuid())
+  userId    String
+  orgId     String
+  role      String       @default("member") // "admin" | "member"
+  seats     Int          @default(3)
+  createdAt DateTime     @default(now())
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@index([orgId])
+}
+
+model OrgInvite {
+  id        String       @id @default(cuid())
+  orgId     String
+  email     String
+  role      String       @default("member") // "admin" | "member"
+  token     String       @unique @default(cuid())
+  expiresAt DateTime
+  createdAt DateTime     @default(now())
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([orgId])
+}
+
 model Installation {
   id             String   @id @default(cuid())
   userId         String
+  orgId          String?
   installationId Int
   createdAt      DateTime @default(now())
 
   @@unique([userId, installationId])
   @@index([userId])
+  @@index([orgId])
 }
 
 model RepoScan {
-  id             String   @id @default(cuid())
-  userId         String
-  owner          String
-  repo           String
-  branch         String
-  fileCount      Int
-  filePaths      String   // JSON array of l10n file paths
-  scannedAt      DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  orgId     String?
+  owner     String
+  repo      String
+  branch    String
+  fileCount Int
+  filePaths String   // JSON array of L10nFileRef objects
+  scannedAt DateTime @default(now())
 
   @@unique([userId, owner, repo, branch])
   @@index([userId])
+  @@index([orgId])
+}
+
+model SubProject {
+  id         String   @id @default(cuid())
+  orgId      String
+  repoOwner  String
+  repoName   String
+  branch     String
+  name       String
+  rootPath   String
+  filePaths  String // JSON array of file paths
+  detectedAt DateTime @default(now())
+
+  @@unique([orgId, repoOwner, repoName, branch, rootPath])
+  @@index([orgId, repoOwner, repoName, branch])
 }

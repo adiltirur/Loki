@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { KeyListPanel } from "@/components/loki/key-list-panel";
 import { MultiLocaleEditor } from "@/components/loki/multi-locale-editor";
 import { BulkActionsBar } from "@/components/loki/review-actions";
 import { PublishView } from "@/components/loki/publish-view";
+import { KeyListSkeleton } from "@/components/loki/skeletons";
+import { Button } from "@/components/ui/button";
 import { useEditorState } from "@/lib/use-editor-state";
 import { groupL10nFiles } from "@/lib/file-grouping";
 import { useToast } from "@/lib/use-toast";
+import { useTopbar, useTopbarConfig } from "@/components/loki/topbar-context";
 import type { L10nFileRef } from "@/lib/github";
 
 interface TranslationEditorProps {
@@ -17,6 +20,8 @@ interface TranslationEditorProps {
   repo?: string;
   branch?: string;
   installationId?: number;
+  subProjectRootPath?: string;
+  subProjectName?: string;
 }
 
 export function TranslationEditor({
@@ -24,16 +29,38 @@ export function TranslationEditor({
   repo,
   branch = "main",
   installationId,
+  subProjectRootPath,
+  subProjectName,
 }: TranslationEditorProps) {
   const { data: session } = useSession();
   const { toast } = useToast();
-  const username = (session?.user as { login?: string } | undefined)?.login ?? session?.user?.name ?? "user";
+  const username =
+    (session?.user as { githubLogin?: string; login?: string } | undefined)?.githubLogin ??
+    (session?.user as { login?: string } | undefined)?.login ??
+    session?.user?.name ??
+    "user";
 
   const editor = useEditorState();
   const [scanning, setScanning] = useState(false);
   const [publishMode, setPublishMode] = useState(false);
   const [addingKey, setAddingKey] = useState(false);
   const [newKeyInput, setNewKeyInput] = useState("");
+
+  // Wire breadcrumbs + search input into the shared topbar.
+  const breadcrumbs: string[] = [];
+  if (owner && repo) breadcrumbs.push(`${owner}/${repo}`);
+  if (owner && repo && branch) breadcrumbs.push(branch);
+  if (subProjectName) breadcrumbs.push(subProjectName);
+  useTopbarConfig({
+    breadcrumbs,
+    search: { enabled: Boolean(owner && repo), placeholder: "Filter keys" },
+  });
+  const { searchValue } = useTopbar();
+  useEffect(() => {
+    editor.setSearchQuery(searchValue);
+    // editor.setSearchQuery is stable; depending on it triggers extra renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchValue]);
 
   // Scan the repo and build groups
   useEffect(() => {
@@ -43,11 +70,17 @@ export function TranslationEditor({
     fetch(`/api/repos/${owner}/${repo}/scan?${params}`)
       .then((r) => r.json())
       .then((d: { files?: L10nFileRef[]; installationId?: number }) => {
-        const files = d.files ?? [];
+        const allFiles = d.files ?? [];
+        const files = subProjectRootPath
+          ? allFiles.filter((f) =>
+              subProjectRootPath === ""
+                ? !f.path.includes("/")
+                : f.path.startsWith(subProjectRootPath + "/") || f.path === subProjectRootPath
+            )
+          : allFiles;
         const instId = d.installationId ?? installationId;
         const groups = groupL10nFiles(files);
         editor.setGroups(groups);
-        // Auto-select first group
         if (groups.length > 0 && owner && repo) {
           editor.selectGroup(groups[0], owner, repo, branch, instId);
         }
@@ -55,7 +88,7 @@ export function TranslationEditor({
       .catch(console.error)
       .finally(() => setScanning(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [owner, repo, branch, installationId]);
+  }, [owner, repo, branch, installationId, subProjectRootPath]);
 
   const handleAddKey = useCallback(() => {
     const key = newKeyInput.trim();
@@ -77,7 +110,6 @@ export function TranslationEditor({
     setPublishMode(false);
   }, [editor]);
 
-  // Handle group selection from panel
   const handleSelectGroup = useCallback(
     (group: typeof editor.groups[0]) => {
       if (!owner || !repo || !installationId) return;
@@ -92,7 +124,6 @@ export function TranslationEditor({
         .map((f) => f.locale)
     : [];
 
-  // No repo selected
   if (!owner || !repo) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center py-24">
@@ -104,9 +135,8 @@ export function TranslationEditor({
     );
   }
 
-  // Publish overlay
   if (publishMode && editor.activeGroup) {
-    const canWrite = true; // TODO: derive from repo permissions
+    const canWrite = true;
     return (
       <PublishView
         owner={owner}
@@ -129,11 +159,10 @@ export function TranslationEditor({
 
   return (
     <div className="flex flex-1 overflow-hidden min-h-0 -m-6">
-      {/* Left — key list panel */}
       <div className="w-56 shrink-0 bg-[var(--color-surface-container-low)] flex flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--color-outline-variant)_15%,transparent)]">
         {scanning || editor.loadingGroup ? (
-          <div className="flex flex-1 items-center justify-center">
-            <Loader2 className="h-4 w-4 animate-spin text-[var(--color-muted-foreground)]" />
+          <div className="px-3 py-3">
+            <KeyListSkeleton rows={10} />
           </div>
         ) : (
           <KeyListPanel
@@ -163,36 +192,36 @@ export function TranslationEditor({
         )}
       </div>
 
-      {/* Center — editor */}
       <div className="flex flex-1 flex-col overflow-hidden bg-[var(--color-background)]">
-        {!editor.activeGroup ? (
-          <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">
-            No localization files found
-          </div>
-        ) : !editor.selectedKey ? (
-          <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">
-            Select a key to start translating
-          </div>
-        ) : (
-          <MultiLocaleEditor
-            selectedKey={editor.selectedKey}
-            activeGroup={editor.activeGroup}
-            lockData={editor.lockData}
-            username={username}
-            getEffectiveValue={editor.getEffectiveValue}
-            getOriginalValue={editor.getOriginalValue}
-            isKeyMissing={editor.isKeyMissing}
-            onUpdateValue={(locale, key, value) =>
-              editor.updateValue(locale, key, value, username)
-            }
-            onDeleteKey={editor.deleteKey}
-            onApprove={editor.approveKey}
-            onReject={editor.rejectKey}
-            onTranslate={handleTranslate}
-          />
-        )}
+        <div className="flex flex-1 overflow-auto">
+          {!editor.activeGroup ? (
+            <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">
+              No localization files found
+            </div>
+          ) : !editor.selectedKey ? (
+            <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-muted-foreground)]">
+              Select a key to start translating
+            </div>
+          ) : (
+            <MultiLocaleEditor
+              selectedKey={editor.selectedKey}
+              activeGroup={editor.activeGroup}
+              lockData={editor.lockData}
+              username={username}
+              getEffectiveValue={editor.getEffectiveValue}
+              getOriginalValue={editor.getOriginalValue}
+              isKeyMissing={editor.isKeyMissing}
+              onUpdateValue={(locale, key, value) =>
+                editor.updateValue(locale, key, value, username)
+              }
+              onDeleteKey={editor.deleteKey}
+              onApprove={editor.approveKey}
+              onReject={editor.rejectKey}
+              onTranslate={handleTranslate}
+            />
+          )}
+        </div>
 
-        {/* Add key input */}
         {addingKey && (
           <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--color-outline-variant)_15%,transparent)] px-4 py-2.5 bg-[var(--color-background)] flex items-center gap-2">
             <Plus className="h-3 w-3 text-[var(--color-muted-foreground)]" />
@@ -222,28 +251,18 @@ export function TranslationEditor({
           </div>
         )}
 
-        {/* Publish bottom bar */}
-        <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--color-outline-variant)_15%,transparent)] px-4 py-2 bg-[var(--color-background)] flex items-center justify-between">
-          <span className="text-xs text-[var(--color-muted-foreground)]">
-            {editor.totalChangeCount > 0
-              ? `${editor.totalChangeCount} change${editor.totalChangeCount !== 1 ? "s" : ""} pending`
-              : "No changes"}
-          </span>
-          <button
-            onClick={() => setPublishMode(true)}
-            disabled={editor.totalChangeCount === 0}
-            className="flex items-center gap-1.5 rounded px-3 py-1 text-xs font-medium bg-[var(--color-primary)] text-[var(--color-primary-foreground)] disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
-          >
-            Publish
-            {editor.totalChangeCount > 0 && (
-              <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] tabular-nums">
-                {editor.totalChangeCount}
-              </span>
-            )}
-          </button>
-        </div>
+        {/* Sticky publish bar — only when there are pending changes. */}
+        {editor.totalChangeCount > 0 && (
+          <div className="sticky bottom-0 left-0 right-0 z-10 flex items-center justify-between gap-3 px-6 py-3 bg-[var(--color-card)] border-t border-[color-mix(in_srgb,var(--color-outline-variant)_15%,transparent)] shadow-ambient">
+            <span className="text-sm text-[var(--color-muted-foreground)]">
+              {editor.totalChangeCount} key{editor.totalChangeCount !== 1 ? "s" : ""} changed
+            </span>
+            <Button size="sm" onClick={() => setPublishMode(true)}>
+              Publish changes
+            </Button>
+          </div>
+        )}
 
-        {/* Bulk actions bar */}
         {editor.selectedKeys.size > 0 && (
           <BulkActionsBar
             selectedCount={editor.selectedKeys.size}

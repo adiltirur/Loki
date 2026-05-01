@@ -1,100 +1,85 @@
-"use client";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { getInstallationsForOrg } from "@/lib/installation-store";
+import { listReposForInstallation, type GithubRepo } from "@/lib/github";
+import { SettingsTabs } from "@/app/[locale]/app/settings/settings-tabs";
 
-import { useState } from "react";
-import { useTranslations } from "next-intl";
-import * as Tabs from "@radix-ui/react-tabs";
-import { GitBranch, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+interface SettingsRepo {
+  owner: string;
+  name: string;
+  defaultBranch: string | null;
+  lastScannedBranch: string | null;
+  lastScannedAt: string | null;
+}
 
-export default function SettingsPage() {
-  const t = useTranslations("app.settings");
-  const [activeTab, setActiveTab] = useState("integrations");
+async function loadOrgRepos(orgId: string): Promise<SettingsRepo[]> {
+  const installationIds = await getInstallationsForOrg(orgId);
+  if (installationIds.length === 0) return [];
+  const lists = await Promise.all(
+    installationIds.map((id) =>
+      listReposForInstallation(id).catch(() => [] as GithubRepo[])
+    )
+  );
+  const repos: GithubRepo[] = lists.flat();
+  // Latest scan per repo (any branch).
+  const scans = await db.repoScan.findMany({
+    where: {
+      orgId,
+      OR: repos.map((r) => ({ owner: r.owner, repo: r.name })),
+    },
+    orderBy: { scannedAt: "desc" },
+  });
+  const lastByRepo = new Map<string, { branch: string; scannedAt: Date }>();
+  for (const s of scans) {
+    const k = `${s.owner}/${s.repo}`;
+    if (!lastByRepo.has(k)) lastByRepo.set(k, { branch: s.branch, scannedAt: s.scannedAt });
+  }
+  return repos.map((r) => {
+    const last = lastByRepo.get(`${r.owner}/${r.name}`);
+    return {
+      owner: r.owner,
+      name: r.name,
+      defaultBranch: r.defaultBranch ?? null,
+      lastScannedBranch: last?.branch ?? null,
+      lastScannedAt: last?.scannedAt.toISOString() ?? null,
+    };
+  });
+}
 
-  const tabs = [
-    { id: "integrations", label: t("integrations") },
-    { id: "repos", label: t("repos") },
-    { id: "appearance", label: t("appearance") },
-    { id: "language", label: t("language") },
-    { id: "account", label: t("account") },
-  ];
+export default async function SettingsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const repos = session.activeOrgId ? await loadOrgRepos(session.activeOrgId) : [];
+
+  let orgRole: "admin" | "member" | null = null;
+  if (session.activeOrgId && session.user.role !== "super_admin") {
+    const member = await db.orgMember.findUnique({
+      where: { userId_orgId: { userId: session.user.id, orgId: session.activeOrgId } },
+      select: { role: true },
+    });
+    orgRole = (member?.role as "admin" | "member" | undefined) ?? null;
+  }
+  const canManageOrg = session.user.role === "super_admin" || orgRole === "admin";
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-lg font-semibold mb-6">{t("title")}</h1>
-
-      <Tabs.Root value={activeTab} onValueChange={setActiveTab}>
-        <Tabs.List className="flex gap-1 mb-6 border-b border-[color-mix(in_srgb,var(--color-outline-variant)_15%,transparent)]">
-          {tabs.map((tab) => (
-            <Tabs.Trigger
-              key={tab.id}
-              value={tab.id}
-              className={cn(
-                "px-3 py-2 text-sm transition-colors -mb-px",
-                activeTab === tab.id
-                  ? "border-b-2 border-[var(--color-accent)] text-[var(--color-foreground)]"
-                  : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
-              )}
-            >
-              {tab.label}
-            </Tabs.Trigger>
-          ))}
-        </Tabs.List>
-
-        <Tabs.Content value="integrations">
-          <div className="rounded bg-[var(--color-card)] p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <GitBranch className="h-5 w-5" />
-                <div>
-                  <p className="text-sm font-medium">GitHub</p>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <Check className="h-3 w-3 text-[var(--color-success)]" />
-                    <span className="text-xs text-[var(--color-success)]">{t("githubConnected")}</span>
-                  </div>
-                </div>
-              </div>
-              <Button size="sm" variant="secondary">{t("reconnect")}</Button>
-            </div>
-          </div>
-        </Tabs.Content>
-
-        <Tabs.Content value="repos">
-          <p className="text-sm text-[var(--color-muted-foreground)]">
-            Repository settings coming soon.
-          </p>
-        </Tabs.Content>
-
-        <Tabs.Content value="appearance">
-          <p className="text-sm text-[var(--color-muted-foreground)]">
-            Appearance settings coming soon.
-          </p>
-        </Tabs.Content>
-
-        <Tabs.Content value="language">
-          <div className="flex gap-2">
-            {["en", "de"].map((lang) => (
-              <button
-                key={lang}
-                className="rounded px-3 py-1.5 text-sm border border-[color-mix(in_srgb,var(--color-outline-variant)_20%,transparent)] hover:bg-[var(--color-surface-container-high)] transition-colors"
-              >
-                {lang === "en" ? "English" : "Deutsch"}
-              </button>
-            ))}
-          </div>
-        </Tabs.Content>
-
-        <Tabs.Content value="account">
-          <div className="space-y-3">
-            <div className="rounded bg-[var(--color-card)] p-4">
-              <p className="text-sm font-medium">Account</p>
-              <p className="text-xs text-[var(--color-muted-foreground)] mt-1">user@example.com</p>
-            </div>
-            <Button size="sm" variant="destructive">{t("signOut")}</Button>
-          </div>
-        </Tabs.Content>
-      </Tabs.Root>
-    </div>
+    <SettingsTabs
+      locale={locale}
+      session={{
+        name: session.user.name ?? null,
+        email: session.user.email ?? null,
+        image: session.user.image ?? null,
+        role: session.user.role,
+        githubLogin: session.user.githubLogin,
+      }}
+      activeOrgId={session.activeOrgId}
+      canManageOrg={canManageOrg}
+      repos={repos}
+    />
   );
 }

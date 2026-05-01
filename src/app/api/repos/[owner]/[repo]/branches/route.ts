@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { getInstallations } from "@/lib/installation-store";
+import { resolveInstallationAccess } from "@/lib/installation-access";
 import { getInstallationOctokit } from "@/lib/github";
 
 export const runtime = "nodejs";
@@ -13,44 +12,20 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ owner: string; repo: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { owner, repo } = await params;
   const installationIdParam = req.nextUrl.searchParams.get("installationId");
+  const requested = installationIdParam ? parseInt(installationIdParam, 10) : null;
 
-  // Always fetch the user's own installations for access control
-  const userInstallations = await getInstallations(session.user.id);
-
-  if (userInstallations.length === 0) {
-    return NextResponse.json({ error: "No GitHub App installed" }, { status: 403 });
-  }
-
-  let installationIds: number[];
-  if (installationIdParam) {
-    const parsed = parseInt(installationIdParam, 10);
-    // Verify the requested installation actually belongs to this user
-    if (!userInstallations.includes(parsed)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-    installationIds = [parsed];
-  } else {
-    installationIds = userInstallations;
+  const access = await resolveInstallationAccess(requested);
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status ?? 403 });
   }
 
   let lastError: unknown;
-  for (const installationId of installationIds) {
+  for (const installationId of access.installationIds) {
     try {
       const octokit = await getInstallationOctokit(installationId);
-      // Two-layer authorization:
-      // 1. installationId ownership was verified above via getInstallations(session.user.id)
-      // 2. repos.get() confirms this installation has explicit access to the
-      //    requested owner/repo — GitHub returns 404 if the repo is not in the
-      //    installation's granted scope, causing the catch below to try the next id.
       await octokit.repos.get({ owner, repo });
-      // octokit.paginate exhausts all pages automatically — no branch count cap.
       const branches = await octokit.paginate(octokit.repos.listBranches, { owner, repo });
       return NextResponse.json({ branches: branches.map((b) => b.name) });
     } catch (err) {

@@ -2,6 +2,7 @@
 
 /* ============================================================
    DESIGN TOKENS — from Stitch design system
+   Defaults (used when no theme class is applied) match dark mode.
    ============================================================ */
 
 @theme {
@@ -70,41 +71,112 @@
 }
 
 /* ============================================================
-   LIGHT MODE OVERRIDES
+   LIGHT MODE — applied when next-themes adds class="light"
    ============================================================ */
-@media (prefers-color-scheme: light) {
-  :root {
-    --color-background:       #ffffff;
-    --color-foreground:       #131313;
-    --color-muted:            #f7f7f7;
-    --color-muted-foreground: #6b7280;
-    --color-border:           color-mix(in srgb, #d1d5db 60%, transparent);
-    --color-card:             #ffffff;
-    --color-card-foreground:  #131313;
-    --color-sidebar:          #f7f7f7;
-    --color-surface:          #ffffff;
-    --color-surface-container-low:      #f7f7f7;
-    --color-surface-container:          #f0f0f0;
-    --color-surface-container-high:     #e8e8e8;
-    --color-surface-container-highest:  #e0e0e0;
-  }
+.light {
+  --color-background:           #ffffff;
+  --color-foreground:           #0f0f0f;
+  --color-muted:                #f3f4f6;
+  --color-muted-foreground:     #5b6472;
+  --color-border:               color-mix(in srgb, #6b7280 25%, transparent);
+  --color-card:                 #ffffff;
+  --color-card-foreground:      #0f0f0f;
+  --color-sidebar:              #f7f7f8;
+  --color-accent:               #2563eb;
+  --color-accent-foreground:    #ffffff;
+  --color-primary:              #1d4ed8;
+  --color-primary-foreground:   #eef2ff;
+  --color-secondary:            #6d28d9;
+  --color-secondary-foreground: #f5f3ff;
+  --color-secondary-container:  #ede9fe;
+  --color-destructive:          #b91c1c;
+  --color-destructive-container:#fee2e2;
+  --color-success:              #15803d;
+  --color-success-container:    #dcfce7;
+  --color-warning:              #b45309;
+  --color-warning-container:    #fef3c7;
+  --color-ai:                   #6d28d9;
+  --color-ai-container:         #ede9fe;
+
+  --color-surface:                    #ffffff;
+  --color-surface-dim:                #f3f4f6;
+  --color-surface-bright:             #ffffff;
+  --color-surface-container-lowest:   #ffffff;
+  --color-surface-container-low:      #fafafa;
+  --color-surface-container:          #f3f4f6;
+  --color-surface-container-high:     #e5e7eb;
+  --color-surface-container-highest:  #d1d5db;
+  --color-surface-variant:            #e5e7eb;
+  --color-outline:                    #6b7280;
+  --color-outline-variant:            #cbd5e1;
+
+  --color-tertiary:           #15803d;
+  --color-tertiary-container: #dcfce7;
+
+  --color-inverse-surface:    #0f0f0f;
+  --color-inverse-on-surface: #f3f4f6;
+  --color-inverse-primary:    #93c5fd;
+
+  --color-error:              #b91c1c;
+  --color-error-container:    #fee2e2;
+  --color-on-error:           #ffffff;
+  --color-on-error-container: #7f1d1d;
+
+  --shadow-ambient: 0 12px 32px rgba(15, 23, 42, 0.12);
 }
 
-/* Dark mode explicit class override (for next-themes) */
+/* Dark mode explicit class — redundant with @theme defaults, kept so toggling
+   light → dark via next-themes flips correctly even after JS re-renders. */
 .dark {
-  --color-background:       #131313;
-  --color-foreground:       #e5e2e1;
-  --color-muted:            #1c1b1b;
-  --color-muted-foreground: #c3c6d7;
-  --color-border:           color-mix(in srgb, #434655 15%, transparent);
-  --color-card:             #201f1f;
-  --color-card-foreground:  #e5e2e1;
-  --color-sidebar:          #1c1b1b;
-  --color-surface:          #131313;
+  --color-background:           #131313;
+  --color-foreground:           #e5e2e1;
+  --color-muted:                #1c1b1b;
+  --color-muted-foreground:     #c3c6d7;
+  --color-border:               color-mix(in srgb, #434655 15%, transparent);
+  --color-card:                 #201f1f;
+  --color-card-foreground:      #e5e2e1;
+  --color-sidebar:              #1c1b1b;
+  --color-accent:               #2563eb;
+  --color-accent-foreground:    #eeefff;
+  --color-primary:              #b4c5ff;
+  --color-primary-foreground:   #002a78;
+  --color-secondary:            #d2bbff;
+  --color-secondary-foreground: #3f008e;
+  --color-secondary-container:  #6001d1;
+  --color-destructive:          #ffb4ab;
+  --color-destructive-container:#93000a;
+  --color-success:              #62df7d;
+  --color-success-container:    #007f36;
+  --color-warning:              #ffd066;
+  --color-warning-container:    #8a5c00;
+  --color-ai:                   #d2bbff;
+  --color-ai-container:         #6001d1;
+
+  --color-surface:                    #131313;
+  --color-surface-dim:                #131313;
+  --color-surface-bright:             #3a3939;
+  --color-surface-container-lowest:   #0e0e0e;
   --color-surface-container-low:      #1c1b1b;
   --color-surface-container:          #201f1f;
   --color-surface-container-high:     #2a2a2a;
   --color-surface-container-highest:  #353534;
+  --color-surface-variant:            #353534;
+  --color-outline:                    #8d90a0;
+  --color-outline-variant:            #434655;
+
+  --color-tertiary:           #62df7d;
+  --color-tertiary-container: #007f36;
+
+  --color-inverse-surface:    #e5e2e1;
+  --color-inverse-on-surface: #313030;
+  --color-inverse-primary:    #0053db;
+
+  --color-error:              #ffb4ab;
+  --color-error-container:    #93000a;
+  --color-on-error:           #690005;
+  --color-on-error-container: #ffdad6;
+
+  --shadow-ambient: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
 
 /* ============================================================
@@ -134,17 +206,17 @@ body {
 
 /* Ghost border utility */
 .border-ghost {
-  border: 1px solid color-mix(in srgb, #434655 15%, transparent);
+  border: 1px solid var(--color-border);
 }
 
 /* Ambient shadow utility */
 .shadow-ambient {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-ambient);
 }
 
 /* Glass panel utility */
 .glass-panel {
-  background: rgba(53, 53, 52, 0.7);
+  background: color-mix(in srgb, var(--color-surface-variant) 70%, transparent);
   backdrop-filter: blur(20px);
 }
 
@@ -162,4 +234,26 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ============================================================
+   SKELETON SHIMMER
+   ============================================================ */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-container-high) 25%,
+    var(--color-surface-container) 50%,
+    var(--color-surface-container-high) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+  display: block;
+  height: 0.75rem;
 }

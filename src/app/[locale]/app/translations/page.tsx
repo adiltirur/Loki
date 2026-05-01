@@ -8,9 +8,12 @@ export default async function TranslationsPage({
     repo?: string;
     branch?: string;
     installationId?: string;
+    subProjectRootPath?: string;
+    subProjectName?: string;
   }>;
 }) {
-  const { owner, repo, branch, installationId } = await searchParams;
+  const { owner, repo, branch, installationId, subProjectRootPath, subProjectName } =
+    await searchParams;
 
   return (
     <TranslationEditor
@@ -18,6 +21,8 @@ export default async function TranslationsPage({
       repo={repo}
       branch={branch ?? "main"}
       installationId={installationId ? Number(installationId) : undefined}
+      subProjectRootPath={subProjectRootPath}
+      subProjectName={subProjectName}
     />
   );
 }

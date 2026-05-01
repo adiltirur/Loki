@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { Search, Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusFilterBar } from "@/components/loki/status-filter-bar";
+import { EmptyState } from "@/components/loki/empty-state";
 import type { L10nFileGroup } from "@/lib/file-grouping";
 import type { LokiLockData, LockStatus } from "@/lib/loki-lock";
 import { getKeyOverallStatus } from "@/lib/loki-lock";
@@ -169,19 +170,6 @@ export function KeyListPanel({
         />
       )}
 
-      {/* Search */}
-      {activeGroup && (
-        <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[color-mix(in_srgb,var(--color-outline-variant)_15%,transparent)] shrink-0">
-          <Search className="h-3 w-3 text-[var(--color-muted-foreground)] shrink-0" />
-          <input
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search keys..."
-            className="flex-1 bg-transparent text-xs text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)] outline-none"
-          />
-        </div>
-      )}
-
       {/* Bulk selection bar */}
       {selectedKeys.size > 0 && (
         <div className="flex items-center justify-between px-2 py-1 bg-[var(--color-surface-container-high)] border-b border-[color-mix(in_srgb,var(--color-outline-variant)_15%,transparent)] shrink-0">
@@ -200,9 +188,22 @@ export function KeyListPanel({
       {/* Key list */}
       <div className="flex-1 overflow-y-auto no-scrollbar">
         {filteredKeys.length === 0 ? (
-          <p className="p-3 text-xs text-[var(--color-muted-foreground)]">
-            {primaryKeys.length === 0 ? "No keys found" : "No keys match the filter"}
-          </p>
+          primaryKeys.length === 0 ? (
+            <p className="p-3 text-xs text-[var(--color-muted-foreground)]">No keys found</p>
+          ) : (
+            <div className="p-3">
+              <EmptyState
+                icon={Search}
+                title="No matching keys"
+                description={
+                  searchQuery
+                    ? `No keys match “${searchQuery}” in the current filter.`
+                    : "Adjust the status filter to see more keys."
+                }
+                action={searchQuery ? { label: "Clear search", onClick: () => onSearchChange("") } : undefined}
+              />
+            </div>
+          )
         ) : (
           <>
             {/* Select all row */}

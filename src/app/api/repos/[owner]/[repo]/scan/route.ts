@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getInstallations } from "@/lib/installation-store";
+import { resolveInstallationAccess } from "@/lib/installation-access";
 import { scanRepo } from "@/lib/github";
+import { detectSubProjects } from "@/lib/subproject-detector";
 import { db } from "@/lib/db";
 
 export const runtime = "nodejs";
 
 /**
  * GET /api/repos/[owner]/[repo]/scan?branch=main
- * Scans the repo for localization files (.arb, .json) without AI.
+ * Scans the repo for localization files (.arb, .json) and persists a
+ * RepoScan + SubProject records scoped to the active org.
  */
 export async function GET(
   req: NextRequest,
@@ -22,23 +24,70 @@ export async function GET(
   const { owner, repo } = await params;
   const branch = req.nextUrl.searchParams.get("branch") ?? "main";
 
-  const installationIds = await getInstallations(session.user.id);
-  if (installationIds.length === 0) {
-    return NextResponse.json({ error: "No GitHub App installed" }, { status: 403 });
+  const access = await resolveInstallationAccess();
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status ?? 403 });
   }
 
-  // Try each installation until one succeeds (repo may be under any installation)
   let lastError: unknown;
-  for (const installationId of installationIds) {
+  for (const installationId of access.installationIds) {
     try {
       const files = await scanRepo(installationId, owner, repo, branch);
-      const userId = session.user.id;
+      const filePaths = files.map((f) => f.path);
+      const subProjects = detectSubProjects(filePaths);
+
       await db.repoScan.upsert({
-        where: { userId_owner_repo_branch: { userId, owner, repo, branch } },
-        update: { fileCount: files.length, filePaths: JSON.stringify(files.map((f) => f.path)), scannedAt: new Date() },
-        create: { userId, owner, repo, branch, fileCount: files.length, filePaths: JSON.stringify(files.map((f) => f.path)) },
+        where: { userId_owner_repo_branch: { userId: session.user.id, owner, repo, branch } },
+        update: {
+          orgId: access.orgId,
+          fileCount: files.length,
+          filePaths: JSON.stringify(filePaths),
+          scannedAt: new Date(),
+        },
+        create: {
+          userId: session.user.id,
+          orgId: access.orgId,
+          owner,
+          repo,
+          branch,
+          fileCount: files.length,
+          filePaths: JSON.stringify(filePaths),
+        },
       });
-      return NextResponse.json({ files, installationId });
+
+      if (access.orgId) {
+        await Promise.all(
+          subProjects.map((sp) =>
+            db.subProject.upsert({
+              where: {
+                orgId_repoOwner_repoName_branch_rootPath: {
+                  orgId: access.orgId!,
+                  repoOwner: owner,
+                  repoName: repo,
+                  branch,
+                  rootPath: sp.rootPath,
+                },
+              },
+              update: {
+                name: sp.name,
+                filePaths: JSON.stringify(sp.files),
+                detectedAt: new Date(),
+              },
+              create: {
+                orgId: access.orgId!,
+                repoOwner: owner,
+                repoName: repo,
+                branch,
+                name: sp.name,
+                rootPath: sp.rootPath,
+                filePaths: JSON.stringify(sp.files),
+              },
+            })
+          )
+        );
+      }
+
+      return NextResponse.json({ files, installationId, subProjects });
     } catch (err) {
       lastError = err;
     }
